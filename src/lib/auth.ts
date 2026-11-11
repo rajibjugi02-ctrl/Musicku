@@ -12,6 +12,14 @@ import type { Adapter } from "next-auth/adapters";
 const baseAdapter = PrismaAdapter(prisma);
 const resilientAdapter: Adapter = {
   ...baseAdapter,
+  async getUserByAccount(account) {
+    try {
+      return await baseAdapter.getUserByAccount!(account);
+    } catch (err) {
+      console.warn("[AuthAdapter] Prisma getUserByAccount warning:", err);
+      return null;
+    }
+  },
   async getUserByEmail(email) {
     try {
       const u = await baseAdapter.getUserByEmail!(email);
