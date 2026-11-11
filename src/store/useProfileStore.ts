@@ -11,15 +11,14 @@ export interface ProfileState {
   syncWithSession: (sessionUser: { name?: string | null; email?: string | null; image?: string | null }) => void;
 }
 
-const DEFAULT_AVATAR =
-  "https://cdn-images.dzcdn.net/images/artist/324c50c04a5a944117cd3daa0963fc63/1000x1000-000000-80-0-0.jpg";
+const DEFAULT_AVATAR = "";
 
 export const useProfileStore = create<ProfileState>()(
   persist(
     (set, get) => ({
-      name: "Rajib Zahir",
-      username: "rajibzahir",
-      bio: "Curating nocturnal soundscapes, live synced lyrics & liquid audio vibes. 🎧✨",
+      name: "",
+      username: "",
+      bio: "",
       avatarUrl: DEFAULT_AVATAR,
 
       updateProfile: (data) => {
@@ -46,16 +45,27 @@ export const useProfileStore = create<ProfileState>()(
       },
 
       syncWithSession: (sessionUser) => {
+        if (!sessionUser) return;
         const current = get();
-        // If current profile is still default, populate from authenticated session
-        if (sessionUser.name && current.name === "Rajib Zahir") {
-          const derivedUsername = sessionUser.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-          set({
-            name: sessionUser.name,
-            username: derivedUsername || current.username,
-            avatarUrl: sessionUser.image || current.avatarUrl,
-          });
-        }
+        const fallbackName = sessionUser.name || (sessionUser.email ? sessionUser.email.split("@")[0] : "Musicku User");
+        const derivedUsername = (sessionUser.name || sessionUser.email || "user")
+          .toLowerCase()
+          .replace(/[^a-z0-9._]/g, "")
+          .slice(0, 20);
+
+        // Sanitize any previous legacy default photo from local storage
+        const isLegacyAvatar =
+          current.avatarUrl &&
+          (current.avatarUrl.includes("dzcdn.net") || current.avatarUrl.includes("unsplash.com"));
+
+        set({
+          name: current.name && current.name !== "Rajib Zahir" ? current.name : fallbackName,
+          username: current.username && current.username !== "rajibzahir" ? current.username : (derivedUsername || "user"),
+          bio: current.bio && !current.bio.includes("Curating nocturnal soundscapes") ? current.bio : "",
+          avatarUrl: isLegacyAvatar
+            ? (sessionUser.image || "")
+            : (current.avatarUrl || sessionUser.image || ""),
+        });
       },
     }),
     {

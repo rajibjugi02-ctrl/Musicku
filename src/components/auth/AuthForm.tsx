@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Loader2, Disc3 } from "lucide-react";
+import { Mail, Lock, User, Loader2, Disc3, Eye, EyeOff } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 
 interface AuthFormProps {
@@ -15,6 +15,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "spotify" | null>(null);
@@ -95,6 +96,8 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         useProfileStore.getState().updateProfile({
           name: name.trim() || "Musicku User",
           username: derivedUsername || "musicku_user",
+          bio: "",
+          avatarUrl: "",
         });
 
         window.location.href = "/";
@@ -171,14 +174,23 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === "signin" ? "Password" : "Password (min. 6 characters)"}
                   required
                   minLength={mode === "register" ? 6 : undefined}
-                  className="w-full h-11 pl-10 pr-3 rounded-2xl glass-card text-white placeholder:text-zinc-500 text-xs focus:outline-none focus:border-white/30 transition-all"
+                  className="w-full h-11 pl-10 pr-10 rounded-2xl glass-card text-white placeholder:text-zinc-500 text-xs focus:outline-none focus:border-white/30 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  tabIndex={-1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors cursor-pointer p-1"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
 
               {error && (

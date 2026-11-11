@@ -15,6 +15,7 @@ import {
   Upload,
   ArrowRight,
   FolderPlus,
+  User,
 } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
@@ -147,13 +148,19 @@ export default function ProfilePage() {
         <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
           {/* Avatar with Edit Camera Overlay */}
           <div className="relative group">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-xl border-2 border-black/15 dark:border-white/25 bg-zinc-200 dark:bg-zinc-800">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={avatarUrl}
-                alt={name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-xl border-2 border-black/15 dark:border-white/25 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt={name || "Profile"}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900 text-zinc-500 dark:text-zinc-400">
+                  <User className="w-12 h-12 stroke-[1.6]" />
+                </div>
+              )}
             </div>
             <button
               onClick={handleOpenEdit}
@@ -169,10 +176,10 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 dark:text-white tracking-tight leading-tight">
-                  {name}
+                  {name || "Musicku User"}
                 </h1>
                 <p className="text-xs sm:text-sm font-mono text-zinc-600 dark:text-zinc-400 mt-0.5">
-                  @{username}
+                  @{username || "user"}
                 </p>
               </div>
 
@@ -198,7 +205,7 @@ export default function ProfilePage() {
 
             {/* User Bio */}
             <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 mt-3.5 max-w-xl leading-relaxed">
-              {bio}
+              {bio || "No bio added yet. Click Edit Profile to tell others about your music vibe."}
             </p>
           </div>
         </div>
@@ -354,13 +361,17 @@ export default function ProfilePage() {
                     Profile Photo
                   </label>
                   <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-black/15 dark:border-white/20 flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={editAvatar}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="relative w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-black/15 dark:border-white/20 flex-shrink-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-800">
+                      {editAvatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={editAvatar}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-10 h-10 text-zinc-400 dark:text-zinc-500 stroke-[1.5]" />
+                      )}
                       {isUploading && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] text-white">
                           Processing...
@@ -376,14 +387,26 @@ export default function ProfilePage() {
                         onChange={handleFileChange}
                         className="hidden"
                       />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-white/10 text-xs font-semibold text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-white/15 transition-all cursor-pointer border border-black/10 dark:border-white/15"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Upload Custom Photo</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-white/10 text-xs font-semibold text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-white/15 transition-all cursor-pointer border border-black/10 dark:border-white/15"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload Photo</span>
+                        </button>
+
+                        {editAvatar && (
+                          <button
+                            type="button"
+                            onClick={() => setEditAvatar("")}
+                            className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-all cursor-pointer border border-rose-500/20"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                       <p className="text-[10px] text-zinc-500">
                         PNG, JPG, or WEBP. Auto-compressed with Canvas.
                       </p>
