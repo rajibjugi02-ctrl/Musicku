@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLyrics } from "@/lib/lrclib";
+import { fetchLyricsFromLRCLIB } from "@/lib/lrclib";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const trackName = searchParams.get("track") ?? "";
-  const artistName = searchParams.get("artist") ?? "";
-  const albumName = searchParams.get("album") ?? "";
-  const duration = Number(searchParams.get("duration") ?? "0") / 1000; // ms → seconds
+  const trackName = searchParams.get("track") || searchParams.get("title") || "";
+  const artistName = searchParams.get("artist") || "";
+  const durationParam = searchParams.get("duration") || "0";
 
-  const lines = await getLyrics(trackName, artistName, albumName, duration);
-  return NextResponse.json(lines ?? []);
+  // Accept duration either in ms or in seconds
+  let durationSec = Number(durationParam);
+  if (durationSec > 1000) {
+    durationSec = Math.round(durationSec / 1000);
+  }
+
+  if (!trackName) {
+    return NextResponse.json({ error: "Track title is required" }, { status: 400 });
+  }
+
+  const lines = await fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
+
+  return NextResponse.json({
+    success: true,
+    lines: lines || [],
+  });
 }

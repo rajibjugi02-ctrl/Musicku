@@ -1,0 +1,241 @@
+"use client";
+
+import { useRef, useState, useEffect } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, Search, Library, Heart, User } from "lucide-react";
+import { useProfileStore } from "@/store/useProfileStore";
+import { cn } from "@/lib/utils";
+
+const TABS = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/search", label: "Search", icon: Search },
+  { href: "/library", label: "Library", icon: Library },
+  { href: "/liked-artists", label: "Liked", icon: Heart },
+  { href: "/profile", label: "Profile", icon: User },
+] as const;
+
+// 64px width per tab (5 * 64px = 320px track)
+const TAB_WIDTH = 64;
+const TOTAL_TRACK_WIDTH = TABS.length * TAB_WIDTH; // 320px
+
+export default function MobileNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { avatarUrl } = useProfileStore();
+
+  const activeIdx = Math.max(0, TABS.findIndex((t) => t.href === pathname));
+
+  // Physics-based spring position for the Liquid Lens Pill
+  const dragX = useMotionValue(activeIdx * TAB_WIDTH);
+  const springX = useSpring(dragX, { stiffness: 450, damping: 32, mass: 0.6 });
+
+  // Dual-Layer Clip-Path Counter Offset: locks inner colored items in global coordinate space
+  const counterOffset = useTransform(springX, (x) => -x);
+
+  const [isPressing, setIsPressing] = useState(false);
+  const isDraggingRef = useRef(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const lastHapticIdx = useRef(activeIdx);
+
+  // Sync indicator position whenever route changes externally
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      dragX.set(activeIdx * TAB_WIDTH);
+    }
+  }, [activeIdx, dragX]);
+
+  const updatePositionFromPointer = (clientX: number) => {
+    if (!trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const relativeX = clientX - rect.left - TAB_WIDTH / 2;
+    const maxOffset = TOTAL_TRACK_WIDTH - TAB_WIDTH;
+    const clamped = Math.max(0, Math.min(relativeX, maxOffset));
+    dragX.set(clamped);
+
+    // Subtle Taptic Engine haptic vibration when scrubbing past tab boundaries
+    const currentIdx = Math.round(clamped / TAB_WIDTH);
+    if (currentIdx !== lastHapticIdx.current) {
+      lastHapticIdx.current = currentIdx;
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(8);
+        } catch {}
+      }
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDraggingRef.current = true;
+    setIsPressing(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    updatePositionFromPointer(e.clientX);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    updatePositionFromPointer(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    setIsPressing(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+
+    // Snap to nearest tab index
+    const currentX = dragX.get();
+    const finalIdx = Math.max(0, Math.min(Math.round(currentX / TAB_WIDTH), TABS.length - 1));
+    dragX.set(finalIdx * TAB_WIDTH);
+
+    // Navigate only on pointer release
+    const targetTab = TABS[finalIdx];
+    if (targetTab && pathname !== targetTab.href) {
+      router.push(targetTab.href);
+    }
+  };
+
+  return (
+    <>
+      {/* ─────────────────────────────────────────────────────────────
+          1. BOTTOM ADAPTIVE AMBIENT VIGNETTE SHIELD
+          Replaces dirty black gradient with clean frost matching theme background
+         ───────────────────────────────────────────────────────────── */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed bottom-0 inset-x-0 h-44 bg-gradient-to-t from-[#F2F4F8]/95 via-[#F2F4F8]/60 to-transparent dark:from-[#070709]/95 dark:via-[#070709]/60 dark:to-transparent z-30 md:hidden transition-colors duration-300"
+      />
+
+      {/* ─────────────────────────────────────────────────────────────
+          2. FLOATING iOS 26 LIQUID GLASS SCRUBBING TAB BAR (h-[62px])
+         ───────────────────────────────────────────────────────────── */}
+      <div className="md:hidden fixed bottom-4 inset-x-0 flex justify-center z-50 pointer-events-none select-none">
+        <div
+          ref={trackRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          style={{
+            WebkitBackdropFilter: "blur(40px) saturate(210%)",
+            backdropFilter: "blur(40px) saturate(210%)",
+            width: TOTAL_TRACK_WIDTH + 12, // 332px
+          }}
+          className="pointer-events-auto touch-none relative h-[62px] flex items-center p-1.5 rounded-full bg-white/80 dark:bg-zinc-950/70 border border-black/10 dark:border-white/[0.16] shadow-[0_16px_40px_rgba(0,0,0,0.14)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] cursor-pointer select-none"
+        >
+          {/* Inner 320px Track Container */}
+          <div className="relative w-[320px] h-[50px] mx-auto overflow-hidden rounded-full">
+            {/* ───────────────────────────────────────────────────────────
+                LAYER 1: BASE INACTIVE TAB LAYER (Neutral Zinc)
+               ─────────────────────────────────────────────────────────── */}
+            <div className="absolute inset-0 flex items-center z-0 pointer-events-none">
+              {TABS.map(({ href, label, icon: Icon }) => {
+                const isProfile = href === "/profile";
+                return (
+                  <div
+                    key={href}
+                    style={{ width: TAB_WIDTH }}
+                    className="flex flex-col items-center justify-center gap-0.5 text-zinc-500 dark:text-zinc-400"
+                  >
+                    {isProfile && avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt="Profile"
+                        className="w-4 h-4 rounded-full object-cover opacity-75 grayscale-[20%]"
+                      />
+                    ) : (
+                      <Icon className="w-4 h-4 stroke-[1.8]" />
+                    )}
+                    <span className="text-[10px] font-medium tracking-tight leading-none">
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ───────────────────────────────────────────────────────────
+                LAYER 2: CONVEX LIQUID LENS PILL (Spring Physics + Rim Highlight)
+               ─────────────────────────────────────────────────────────── */}
+            <motion.div
+              style={{
+                x: springX,
+                width: TAB_WIDTH,
+                WebkitBackdropFilter: "blur(24px) saturate(180%)",
+                backdropFilter: "blur(24px) saturate(180%)",
+              }}
+              animate={{
+                scaleX: isPressing ? 1.08 : 1,
+                scaleY: isPressing ? 1.12 : 1,
+              }}
+              transition={{
+                scaleX: { type: "spring", stiffness: 500, damping: 25 },
+                scaleY: { type: "spring", stiffness: 500, damping: 25 },
+              }}
+              className={cn(
+                "absolute top-0 bottom-0 rounded-full z-10 pointer-events-none transition-shadow duration-200",
+                "bg-white/85 dark:bg-white/[0.18] border border-white/60 dark:border-white/30",
+                isPressing
+                  ? "shadow-[0_4px_24px_rgba(10,132,255,0.35),inset_0_1.5px_2px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_28px_rgba(10,132,255,0.5),inset_0_1.5px_2px_rgba(255,255,255,0.7)]"
+                  : "shadow-[0_2px_14px_rgba(10,132,255,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.7)] dark:shadow-[0_3px_18px_rgba(10,132,255,0.3),inset_0_1px_1.5px_rgba(255,255,255,0.5)]"
+              )}
+            />
+
+            {/* ───────────────────────────────────────────────────────────
+                LAYER 3: DUAL-LAYER CLIP-PATH MASK (iOS Electric Blue #0A84FF)
+                Only reveals the Electric Blue items directly inside the lens
+               ─────────────────────────────────────────────────────────── */}
+            <motion.div
+              style={{
+                x: springX,
+                width: TAB_WIDTH,
+                WebkitClipPath: "inset(0 0 0 0 round 9999px)",
+                clipPath: "inset(0 0 0 0 round 9999px)",
+              }}
+              className="absolute top-0 bottom-0 overflow-hidden rounded-full pointer-events-none z-20"
+            >
+              {/* Counter-Offset Container keeping active blue items locked in visual space */}
+              <motion.div
+                style={{
+                  x: counterOffset,
+                  width: TOTAL_TRACK_WIDTH,
+                }}
+                className="flex items-center h-full pointer-events-none"
+              >
+                {TABS.map(({ href, label, icon: Icon }) => {
+                  const isProfile = href === "/profile";
+                  return (
+                    <div
+                      key={href}
+                      style={{ width: TAB_WIDTH }}
+                      className="flex flex-col items-center justify-center gap-0.5 text-[#0A84FF] filter drop-shadow-[0_0_10px_rgba(10,132,255,0.4)]"
+                    >
+                      {isProfile && avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={avatarUrl}
+                          alt="Profile"
+                          className="w-4 h-4 rounded-full object-cover ring-2 ring-[#0A84FF] shadow-[0_0_10px_rgba(10,132,255,0.5)] scale-105"
+                        />
+                      ) : (
+                        <Icon className="w-4 h-4 stroke-[2.4]" />
+                      )}
+                      <span className="text-[10px] font-bold tracking-tight leading-none text-[#0A84FF]">
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

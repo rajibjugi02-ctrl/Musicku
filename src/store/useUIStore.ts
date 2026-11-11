@@ -11,6 +11,7 @@ interface UIState {
   theme: Theme;
   isLeftSidebarOpen: boolean;
   isRightSidebarOpen: boolean;
+  isMobilePlayerOpen: boolean;
   accentColor: string;
 
   setView: (v: View) => void;
@@ -19,6 +20,9 @@ interface UIState {
   setTheme: (t: Theme) => void;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+  openMobilePlayer: () => void;
+  closeMobilePlayer: () => void;
+  toggleMobilePlayer: () => void;
   setAccentColor: (color: string) => void;
 }
 
@@ -30,6 +34,7 @@ export const useUIStore = create<UIState>()(
       theme: "dark",
       isLeftSidebarOpen: true,
       isRightSidebarOpen: true,
+      isMobilePlayerOpen: false,
       accentColor: "#a3a3a3",
 
       setView: (v) => set({ view: v }),
@@ -41,8 +46,13 @@ export const useUIStore = create<UIState>()(
         set((s) => ({ isLeftSidebarOpen: !s.isLeftSidebarOpen })),
       toggleRightSidebar: () =>
         set((s) => ({ isRightSidebarOpen: !s.isRightSidebarOpen })),
+      openMobilePlayer: () => set({ isMobilePlayerOpen: true }),
+      closeMobilePlayer: () => set({ isMobilePlayerOpen: false }),
+      toggleMobilePlayer: () =>
+        set((s) => ({ isMobilePlayerOpen: !s.isMobilePlayerOpen })),
       setAccentColor: (color) => set({ accentColor: color }),
     }),
     { name: "musicku-ui", partialize: (s) => ({ theme: s.theme }) }
   )
 );
+

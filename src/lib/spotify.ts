@@ -147,3 +147,4 @@ export async function getRandomArtists(token: string): Promise<SpotifyArtist[]> 
 export async function getTrack(id: string, token: string): Promise<SpotifyTrack> {
   return spotifyFetch<SpotifyTrack>(`/tracks/${id}`, token);
 }
+

@@ -8,7 +8,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    const isDark = theme === "dark";
+    root.classList.toggle("dark", isDark);
+    root.style.colorScheme = isDark ? "dark" : "light";
+    root.style.backgroundColor = isDark ? "#070709" : "#F2F4F8";
   }, [theme]);
 
   return <>{children}</>;

@@ -6,14 +6,53 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Musicku — Stream Music",
-  description: "Modern music streaming with glassmorphism UI",
+  title: "Musicku — Liquid Audio Streaming",
+  description: "Apple iOS 26 Liquid Glassmorphism Music Player with synced live lyrics",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html
+      lang="en"
+      className="dark"
+      style={{ colorScheme: "dark", backgroundColor: "#070709" }}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Anti-FOUC Blocking Theme Script (Eliminates White Flash on Refresh) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var raw = localStorage.getItem("musicku-ui");
+                  var theme = "dark";
+                  if (raw) {
+                    var parsed = JSON.parse(raw);
+                    if (parsed && parsed.state && parsed.state.theme) {
+                      theme = parsed.state.theme;
+                    }
+                  }
+                  if (theme === "light") {
+                    document.documentElement.classList.remove("dark");
+                    document.documentElement.style.colorScheme = "light";
+                    document.documentElement.style.backgroundColor = "#F2F4F8";
+                  } else {
+                    document.documentElement.classList.add("dark");
+                    document.documentElement.style.colorScheme = "dark";
+                    document.documentElement.style.backgroundColor = "#070709";
+                  }
+                } catch (e) {
+                  document.documentElement.classList.add("dark");
+                  document.documentElement.style.colorScheme = "dark";
+                  document.documentElement.style.backgroundColor = "#070709";
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`${inter.variable} font-sans antialiased bg-[#070709] text-zinc-100`}>
         <Providers>{children}</Providers>
       </body>
     </html>

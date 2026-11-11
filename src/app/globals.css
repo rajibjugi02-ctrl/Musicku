@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #070709;
+  --foreground: #f4f4f6;
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  --background: #F2F4F8;
+  --foreground: #09090b;
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(0, 0, 0, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+  color: #09090b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  background-color: var(--background);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Automatic contrast protection in light mode */
+html:not(.dark) .glass-panel,
+html:not(.dark) .glass-card {
+  color: #09090b;
+}
+
+/* Custom smooth scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 150, 150, 0.25) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(150, 150, 150, 0.25);
+  border-radius: 9999px;
+}
+
+/* Hide scrollbar completely for horizontal touch carousels (Apple Music iOS frameless) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ==========================================================================
+   Apple iOS 26 / visionOS Liquid Glassmorphism Tokens
+   ========================================================================== */
+
+/* Main Floating Container Island */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+html:not(.dark) .glass-panel {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Interactive Bento Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.065);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.38), inset 0 1px 0 0 rgba(255, 255, 255, 0.28);
+}
+
+html:not(.dark) .glass-card {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+}
+
+html:not(.dark) .glass-card:hover {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+}
+
+/* Floating Pill Element */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+
+html:not(.dark) .glass-pill {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 2px 8px rgba(0, 0, 0, 0.04);
 }

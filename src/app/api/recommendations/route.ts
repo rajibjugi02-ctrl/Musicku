@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientToken, getRecommendations } from "@/lib/spotify";
+import { fetchRecommendations } from "@/lib/music-service";
 
 export async function GET(req: NextRequest) {
-  const seedTracks = req.nextUrl.searchParams.get("seedTracks")?.split(",") ?? [];
-  const seedArtists = req.nextUrl.searchParams.get("seedArtists")?.split(",") ?? [];
-
-  if (!seedTracks.length && !seedArtists.length) {
-    return NextResponse.json([]);
-  }
-
-  const token = await getClientToken();
-  const tracks = await getRecommendations(seedTracks, seedArtists, token, 10);
+  const seedTrack = req.nextUrl.searchParams.get("seedTracks")?.split(",")[0] || undefined;
+  const seedArtist = req.nextUrl.searchParams.get("seedArtists")?.split(",")[0] || undefined;
+  const tracks = await fetchRecommendations(seedTrack, seedArtist);
   return NextResponse.json(tracks);
 }
