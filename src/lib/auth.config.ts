@@ -14,8 +14,33 @@ const SPOTIFY_SCOPES = [
   "user-read-recently-played",
 ].join(" ");
 
+const googleClientId = (
+  process.env.GOOGLE_CLIENT_ID ||
+  process.env.AUTH_GOOGLE_ID ||
+  ""
+).trim();
+
+const googleClientSecret = (
+  process.env.GOOGLE_CLIENT_SECRET ||
+  process.env.AUTH_GOOGLE_SECRET ||
+  ""
+).trim();
+
+const spotifyClientId = (
+  process.env.SPOTIFY_CLIENT_ID ||
+  process.env.AUTH_SPOTIFY_ID ||
+  ""
+).trim();
+
+const spotifyClientSecret = (
+  process.env.SPOTIFY_CLIENT_SECRET ||
+  process.env.AUTH_SPOTIFY_SECRET ||
+  ""
+).trim();
+
 export const authConfig: NextAuthConfig = {
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "musicku_super_secure_random_production_secret_key_2026_x89q",
+  secret: (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "musicku_super_secure_random_production_secret_key_2026_x89q").trim(),
+  trustHost: true,
   pages: {
     signIn: "/login",
     error: "/login",
@@ -23,13 +48,13 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
     }),
     Spotify({
-      clientId: process.env.SPOTIFY_CLIENT_ID || "",
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET || "",
+      clientId: spotifyClientId,
+      clientSecret: spotifyClientSecret,
       allowDangerousEmailAccountLinking: true,
       authorization: `https://accounts.spotify.com/authorize?scope=${encodeURIComponent(SPOTIFY_SCOPES)}`,
     }),
