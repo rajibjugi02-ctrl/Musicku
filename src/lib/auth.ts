@@ -41,17 +41,22 @@ const resilientAdapter: Adapter = {
   },
   async createUser(user) {
     try {
-      return await baseAdapter.createUser!(user);
+      // Ensure newly created accounts start with no profile picture (kosongan tanpa foto)
+      return await baseAdapter.createUser!({
+        ...user,
+        image: null,
+      });
     } catch (err) {
       console.warn("[AuthAdapter] Prisma createUser warning, falling back to local store:", err);
       const fallback = await saveFallbackUser({
         name: user.name || "Musicku User",
         email: user.email,
         password: "",
-        image: user.image,
+        image: null,
       });
       return {
         ...user,
+        image: null,
         id: fallback.id,
         emailVerified: null,
       };
