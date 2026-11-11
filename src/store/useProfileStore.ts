@@ -56,20 +56,32 @@ export const useProfileStore = create<ProfileState>()(
         // Sanitize any previous legacy default photo from local storage
         const isLegacyAvatar =
           current.avatarUrl &&
-          (current.avatarUrl.includes("dzcdn.net") || current.avatarUrl.includes("unsplash.com"));
+          (current.avatarUrl.includes("dzcdn.net") ||
+            current.avatarUrl.includes("unsplash.com") ||
+            current.avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63"));
 
         set({
           name: current.name && current.name !== "Rajib Zahir" ? current.name : fallbackName,
           username: current.username && current.username !== "rajibzahir" ? current.username : (derivedUsername || "user"),
           bio: current.bio && !current.bio.includes("Curating nocturnal soundscapes") ? current.bio : "",
-          avatarUrl: isLegacyAvatar
-            ? (sessionUser.image || "")
-            : (current.avatarUrl || sessionUser.image || ""),
+          avatarUrl: isLegacyAvatar ? "" : (current.avatarUrl || ""),
         });
       },
     }),
     {
       name: "musicku-profile",
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // Automatically sanitize legacy default placeholder photos from user's localStorage
+        if (
+          state.avatarUrl &&
+          (state.avatarUrl.includes("dzcdn.net") ||
+            state.avatarUrl.includes("unsplash.com") ||
+            state.avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63"))
+        ) {
+          state.avatarUrl = "";
+        }
+      },
     }
   )
 );

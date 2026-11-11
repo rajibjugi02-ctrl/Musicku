@@ -25,6 +25,10 @@ export default function MobileNav() {
   const { avatarUrl } = useProfileStore();
 
   const activeIdx = Math.max(0, TABS.findIndex((t) => t.href === pathname));
+  const isRealAvatar =
+    avatarUrl &&
+    !avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") &&
+    !avatarUrl.includes("photo-1534528741775");
 
   // Physics-based spring position for the Liquid Lens Pill
   const dragX = useMotionValue(activeIdx * TAB_WIDTH);
@@ -142,7 +146,7 @@ export default function MobileNav() {
                     style={{ width: TAB_WIDTH }}
                     className="flex flex-col items-center justify-center gap-0.5 text-zinc-500 dark:text-zinc-400"
                   >
-                    {isProfile && avatarUrl ? (
+                    {isProfile && isRealAvatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={avatarUrl}
@@ -220,7 +224,7 @@ export default function MobileNav() {
                       style={{ width: TAB_WIDTH }}
                       className="flex flex-col items-center justify-center gap-0.5 text-[#0A84FF] filter drop-shadow-[0_0_10px_rgba(10,132,255,0.4)]"
                     >
-                      {isProfile && avatarUrl ? (
+                      {isProfile && isRealAvatar ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={avatarUrl}

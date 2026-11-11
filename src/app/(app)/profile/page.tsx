@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   Camera,
@@ -22,21 +23,36 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import TrackCard from "@/components/ui/TrackCard";
 import { cn } from "@/lib/utils";
 
-// Curated avatar presets for quick selection
+// Curated avatar presets for quick selection (No default female photo)
 const PRESET_AVATARS = [
-  "https://cdn-images.dzcdn.net/images/artist/324c50c04a5a944117cd3daa0963fc63/1000x1000-000000-80-0-0.jpg",
   "https://cdn-images.dzcdn.net/images/artist/cc2495870fe1a792ad0cdb05501ad5ec/1000x1000-000000-80-0-0.jpg",
   "https://cdn-images.dzcdn.net/images/artist/581693b4724a7fcfa754455101e13a44/1000x1000-000000-80-0-0.jpg",
   "https://cdn-images.dzcdn.net/images/artist/8eab1a9a644889aabaca1e193e05f984/1000x1000-000000-80-0-0.jpg",
   "https://cdn-images.dzcdn.net/images/artist/973809864ad1c52d8c61238662400089/1000x1000-000000-80-0-0.jpg",
+  "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop",
 ];
 
 export default function ProfilePage() {
-  const { name, username, bio, avatarUrl, updateProfile } = useProfileStore();
+  const { data: session } = useSession();
+  const { name, username, bio, avatarUrl, updateProfile, syncWithSession } = useProfileStore();
   const { customLibraries, likedTracks, likedArtists } = useLibraryStore();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sync session and purge legacy default woman photo from user's storage
+  useEffect(() => {
+    if (session?.user) {
+      syncWithSession(session.user);
+    }
+    if (
+      avatarUrl &&
+      (avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") ||
+        avatarUrl.includes("photo-1534528741775"))
+    ) {
+      updateProfile({ avatarUrl: "" });
+    }
+  }, [session, avatarUrl, syncWithSession, updateProfile]);
 
   // Edit form state
   const [editName, setEditName] = useState(name);
@@ -56,7 +72,11 @@ export default function ProfilePage() {
     setEditName(name);
     setEditUsername(username);
     setEditBio(bio);
-    setEditAvatar(avatarUrl);
+    const isLegacy =
+      avatarUrl &&
+      (avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") ||
+        avatarUrl.includes("photo-1534528741775"));
+    setEditAvatar(isLegacy ? "" : avatarUrl);
     setIsEditModalOpen(true);
   };
 
@@ -149,7 +169,9 @@ export default function ProfilePage() {
           {/* Avatar with Edit Camera Overlay */}
           <div className="relative group">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-xl border-2 border-black/15 dark:border-white/25 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
-              {avatarUrl ? (
+              {avatarUrl &&
+              !avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") &&
+              !avatarUrl.includes("photo-1534528741775") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={avatarUrl}
@@ -319,22 +341,25 @@ export default function ProfilePage() {
          ───────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsEditModalOpen(false)}
-              className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-black/75 dark:bg-black/85 backdrop-blur-md"
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", stiffness: 350, damping: 28 }}
-              className="relative w-full max-w-lg bg-white dark:bg-[#121624] rounded-[30px] p-6 sm:p-7 shadow-2xl z-10 flex flex-col gap-5 border border-black/10 dark:border-white/15 text-zinc-950 dark:text-zinc-100 max-h-[90vh] overflow-y-auto scrollbar-thin"
+              initial={{ opacity: 0, y: 60, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 60, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              className="relative w-full max-w-lg bg-white dark:bg-[#121624] rounded-t-[32px] sm:rounded-[30px] p-6 pb-10 sm:pb-7 shadow-2xl z-10 flex flex-col gap-4 border border-black/10 dark:border-white/15 text-zinc-950 dark:text-zinc-100 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto scrollbar-thin"
             >
+              {/* Mobile iOS Sheet Drag Indicator */}
+              <div className="w-10 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto -mt-2 mb-1 sm:hidden" />
+
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-3 border-b border-black/[0.08] dark:border-white/[0.08]">
                 <div className="flex items-center gap-2.5">
@@ -362,7 +387,9 @@ export default function ProfilePage() {
                   </label>
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-black/15 dark:border-white/20 flex-shrink-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-800">
-                      {editAvatar ? (
+                      {editAvatar &&
+                      !editAvatar.includes("324c50c04a5a944117cd3daa0963fc63") &&
+                      !editAvatar.includes("photo-1534528741775") ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={editAvatar}

@@ -108,7 +108,9 @@ export default function LeftSidebar() {
             href="/profile"
             className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-90 transition-opacity"
           >
-            {avatarUrl ? (
+            {avatarUrl &&
+            !avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") &&
+            !avatarUrl.includes("photo-1534528741775") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
