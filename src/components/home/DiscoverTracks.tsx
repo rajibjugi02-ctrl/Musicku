@@ -17,11 +17,13 @@ export default function DiscoverTracks() {
       .then((data) => {
         if (Array.isArray(data)) {
           setTracks(data);
-          // Auto-prefetch top 3 tracks so clicking any of them starts playback in 0ms
+          // Idle prefetch first track smoothly without blocking mobile thread
           const pTracks = data.map(spotifyTrackToPlayerTrack);
-          pTracks.slice(0, 3).forEach((t) => {
-            usePlayerStore.getState().prefetchTrackStream(t);
-          });
+          if (pTracks[0]) {
+            setTimeout(() => {
+              usePlayerStore.getState().prefetchTrackStream(pTracks[0]);
+            }, 1200);
+          }
         }
       })
       .catch(() => {})

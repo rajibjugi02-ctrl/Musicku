@@ -15,7 +15,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isRightOpen = useUIStore((s) => s.isRightSidebarOpen);
 
   return (
-    <div className="h-screen w-screen p-2.5 sm:p-3.5 gap-2.5 sm:gap-3.5 flex flex-col overflow-hidden relative text-zinc-900 dark:text-zinc-100 select-none">
+    <div className="h-screen h-[100dvh] w-screen p-2.5 sm:p-3.5 gap-2.5 sm:gap-3.5 flex flex-col overflow-hidden relative text-zinc-900 dark:text-zinc-100 select-none">
       {/* Liquid Glass Specular Ambient Light Layer */}
       <AmbientBackground />
 
@@ -31,8 +31,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <LeftSidebar />
         </aside>
 
-        {/* Central Viewport Island */}
-        <main className="flex-1 min-w-0 glass-panel rounded-[28px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative flex flex-col">
+        {/* Central Viewport Island (Hardware Accelerated Momentum Scrolling) */}
+        <main className="flex-1 min-w-0 glass-panel rounded-[28px] overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative flex flex-col transform-gpu">
           <div className="flex-1 pb-44 md:pb-8">{children}</div>
         </main>
 

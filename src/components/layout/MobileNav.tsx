@@ -121,11 +121,12 @@ export default function MobileNav() {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           style={{
-            WebkitBackdropFilter: "blur(40px) saturate(210%)",
-            backdropFilter: "blur(40px) saturate(210%)",
+            WebkitBackdropFilter: "blur(28px) saturate(190%)",
+            backdropFilter: "blur(28px) saturate(190%)",
             width: TOTAL_TRACK_WIDTH + 12, // 332px
+            transform: "translateZ(0)",
           }}
-          className="pointer-events-auto touch-none relative h-[62px] flex items-center p-1.5 rounded-full bg-white/80 dark:bg-zinc-950/70 border border-black/10 dark:border-white/[0.16] shadow-[0_16px_40px_rgba(0,0,0,0.14)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] cursor-pointer select-none"
+          className="pointer-events-auto touch-none relative h-[62px] flex items-center p-1.5 rounded-full bg-white/85 dark:bg-zinc-950/75 border border-black/10 dark:border-white/[0.16] shadow-[0_16px_40px_rgba(0,0,0,0.14)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] cursor-pointer select-none"
         >
           {/* Inner 320px Track Container */}
           <div className="relative w-[320px] h-[50px] mx-auto overflow-hidden rounded-full">
@@ -160,14 +161,14 @@ export default function MobileNav() {
             </div>
 
             {/* ───────────────────────────────────────────────────────────
-                LAYER 2: CONVEX LIQUID LENS PILL (Spring Physics + Rim Highlight)
+                LAYER 2: CONVEX LIQUID LENS PILL (Spring Physics + Hardware Layer)
                ─────────────────────────────────────────────────────────── */}
             <motion.div
               style={{
                 x: springX,
                 width: TAB_WIDTH,
-                WebkitBackdropFilter: "blur(24px) saturate(180%)",
-                backdropFilter: "blur(24px) saturate(180%)",
+                transform: "translateZ(0)",
+                willChange: "transform",
               }}
               animate={{
                 scaleX: isPressing ? 1.08 : 1,
@@ -179,7 +180,7 @@ export default function MobileNav() {
               }}
               className={cn(
                 "absolute top-0 bottom-0 rounded-full z-10 pointer-events-none transition-shadow duration-200",
-                "bg-white/85 dark:bg-white/[0.18] border border-white/60 dark:border-white/30",
+                "bg-white/85 dark:bg-white/[0.22] border border-white/60 dark:border-white/35",
                 isPressing
                   ? "shadow-[0_4px_24px_rgba(10,132,255,0.35),inset_0_1.5px_2px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_28px_rgba(10,132,255,0.5),inset_0_1.5px_2px_rgba(255,255,255,0.7)]"
                   : "shadow-[0_2px_14px_rgba(10,132,255,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.7)] dark:shadow-[0_3px_18px_rgba(10,132,255,0.3),inset_0_1px_1.5px_rgba(255,255,255,0.5)]"
@@ -196,6 +197,8 @@ export default function MobileNav() {
                 width: TAB_WIDTH,
                 WebkitClipPath: "inset(0 0 0 0 round 9999px)",
                 clipPath: "inset(0 0 0 0 round 9999px)",
+                transform: "translateZ(0)",
+                willChange: "transform",
               }}
               className="absolute top-0 bottom-0 overflow-hidden rounded-full pointer-events-none z-20"
             >
@@ -204,6 +207,8 @@ export default function MobileNav() {
                 style={{
                   x: counterOffset,
                   width: TOTAL_TRACK_WIDTH,
+                  transform: "translateZ(0)",
+                  willChange: "transform",
                 }}
                 className="flex items-center h-full pointer-events-none"
               >

@@ -40,10 +40,12 @@ export default function MobileMiniPlayer() {
           whileTap={{ scale: 0.98 }}
           onClick={openMobilePlayer}
           style={{
-            WebkitBackdropFilter: "blur(36px) saturate(200%)",
-            backdropFilter: "blur(36px) saturate(200%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            transform: "translateZ(0)",
+            willChange: "transform",
           }}
-          className="relative flex items-center justify-between p-2 rounded-[22px] bg-white/80 dark:bg-zinc-950/75 border border-black/10 dark:border-white/[0.16] shadow-[0_12px_35px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.6)] backdrop-blur-3xl backdrop-saturate-[200%] cursor-pointer overflow-hidden"
+          className="relative flex items-center justify-between p-2 rounded-[22px] bg-white/85 dark:bg-zinc-950/80 border border-black/10 dark:border-white/[0.16] shadow-[0_12px_35px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.6)] cursor-pointer overflow-hidden"
         >
           {/* Subtle Progress Bar at Bottom of Mini Capsule */}
           <div className="absolute bottom-0 inset-x-0 h-[2px] bg-black/5 dark:bg-white/10">

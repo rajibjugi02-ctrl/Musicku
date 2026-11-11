@@ -46,7 +46,6 @@ export default function TrackCard({ track, queue, className }: Props) {
     <>
       <div
         onMouseEnter={handlePrewarm}
-        onTouchStart={handlePrewarm}
         onClick={() => play(track, queue)}
         className={cn("flex-shrink-0 w-36 sm:w-40 group cursor-pointer select-none relative", className)}
       >
