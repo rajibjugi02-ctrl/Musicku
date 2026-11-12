@@ -10,9 +10,15 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/api/register") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
+    pathname.startsWith("/manifest.json") ||
+    pathname.startsWith("/sw.js") ||
+    pathname.startsWith("/logo") ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/apple-icon") ||
     pathname.startsWith("/public") ||
     pathname.startsWith("/icons") ||
-    pathname.startsWith("/images")
+    pathname.startsWith("/images") ||
+    pathname.match(/\.(png|jpg|jpeg|svg|ico|webp|json|js)$/)
   ) {
     return NextResponse.next();
   }
@@ -45,5 +51,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|public|icons|images).*)"],
+  matcher: [
+    "/((?!api/auth|_next/static|_next/image|manifest.json|sw.js|favicon.ico|icon|logo|apple-icon|public|icons|images|.*\\.(?:png|jpg|jpeg|svg|ico|webp|json|js)$).*)",
+  ],
 };
