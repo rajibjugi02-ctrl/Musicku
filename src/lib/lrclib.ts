@@ -10,19 +10,19 @@ interface LrclibItem {
   plainLyrics?: string | null;
 }
 
-// In-memory cache for parsed lyrics (track+artist -> LrcLine[])
+// In-memory cache for parsed lyrics (track+artist+duration -> LrcLine[])
 const lyricsCache = new Map<string, LrcLine[]>();
 
 /**
- * Parses raw LRC string ([mm:ss.xx] or [mm:ss.xxx]) into structured LrcLine array.
+ * Parses raw LRC string ([mm:ss.xx] or [mm:ss.xxx]) into structured LrcLine array
+ * with high-precision millisecond parsing.
  */
 export function parseLrc(raw: string): LrcLine[] {
   const lines: LrcLine[] = [];
   const rawLines = raw.split("\n");
 
   for (const line of rawLines) {
-    // Regex matching [mm:ss.xx] or [mm:ss.xxx] with optional millisecond fractions
-    const match = line.match(/^\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]\s*(.*)$/);
+    const match = line.match(/^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/);
     if (!match) continue;
 
     const minutes = parseInt(match[1], 10);
@@ -30,14 +30,15 @@ export function parseLrc(raw: string): LrcLine[] {
     let millis = 0;
 
     if (match[3]) {
-      // If 2 digits, it's hundredths of a second (* 10 ms)
-      millis = match[3].length === 2 ? parseInt(match[3], 10) * 10 : parseInt(match[3], 10);
+      const frac = match[3];
+      if (frac.length === 1) millis = parseInt(frac, 10) * 100;
+      else if (frac.length === 2) millis = parseInt(frac, 10) * 10;
+      else millis = parseInt(frac.slice(0, 3), 10);
     }
 
     const time = minutes * 60 + seconds + millis / 1000;
     const text = match[4].trim();
 
-    // Skip empty lines or metadata tags (e.g., [ar:...], [al:...])
     if (text && !text.startsWith("[") && !text.endsWith("]")) {
       lines.push({ time, text });
     }
@@ -58,7 +59,6 @@ export function generateProportionalTimestamps(plainLyrics: string, durationSec:
   if (cleanLines.length === 0) return [];
 
   const totalDuration = durationSec > 10 ? durationSec : 180;
-  // Give an initial 5s prelude buffer
   const prelude = 5;
   const usableDuration = Math.max(10, totalDuration - prelude - 5);
   const step = usableDuration / cleanLines.length;
@@ -69,62 +69,127 @@ export function generateProportionalTimestamps(plainLyrics: string, durationSec:
   }));
 }
 
+/**
+ * Fetches lyrics from LRCLIB using exact duration fingerprinting first,
+ * followed by search candidate distance ranking to prevent out-of-sync lyrics.
+ */
 export async function fetchLyricsFromLRCLIB(
   track: string,
   artist: string,
   durationSec: number = 0
 ): Promise<LrcLine[] | null> {
-  const cacheKey = `${artist.toLowerCase()}:${track.toLowerCase()}`;
+  const roundedDur = Math.round(durationSec);
+  const cacheKey = `${artist.toLowerCase()}:${track.toLowerCase()}:${roundedDur}`;
   if (lyricsCache.has(cacheKey)) {
     return lyricsCache.get(cacheKey)!;
   }
 
+  const cleanArtist = artist.trim();
+  const cleanTrack = track.trim();
+  const artistLower = cleanArtist.toLowerCase();
+
   try {
-    // Query 1: Targeted track_name and artist_name search
-    const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`;
+    // 1. Exact Fingerprint Match: /api/get?artist_name=...&track_name=...&duration=...
+    if (roundedDur > 10) {
+      try {
+        const exactUrl = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTrack)}&duration=${roundedDur}`;
+        const exactRes = await fetch(exactUrl, {
+          headers: { "User-Agent": "Musicku-App/1.0" },
+          next: { revalidate: 86400 },
+        });
+
+        if (exactRes.ok) {
+          const exactData: LrclibItem = await exactRes.json();
+          if (exactData.syncedLyrics && exactData.syncedLyrics.trim().length > 0) {
+            const parsed = parseLrc(exactData.syncedLyrics);
+            if (parsed.length > 0) {
+              lyricsCache.set(cacheKey, parsed);
+              return parsed;
+            }
+          }
+        }
+      } catch {
+        // Fall through to search endpoint
+      }
+    }
+
+    // 2. Search Endpoint with Duration-Distance Ranking
+    const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTrack)}&artist_name=${encodeURIComponent(cleanArtist)}`;
     let res = await fetch(searchUrl, {
       headers: { "User-Agent": "Musicku-App/1.0" },
       next: { revalidate: 86400 },
     });
 
-    let data: LrclibItem[] = [];
+    let items: LrclibItem[] = [];
     if (res.ok) {
-      data = await res.json();
+      items = await res.json();
     }
 
-    // Query 2: Fallback query if no synced lyrics found
-    let candidate = data.find((d) => d.syncedLyrics && d.syncedLyrics.trim().length > 0);
-
-    if (!candidate) {
-      const fallbackUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(track + " " + artist)}`;
-      res = await fetch(fallbackUrl, {
+    if (!Array.isArray(items) || items.length === 0) {
+      const broadUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTrack + " " + cleanArtist)}`;
+      const broadRes = await fetch(broadUrl, {
         headers: { "User-Agent": "Musicku-App/1.0" },
         next: { revalidate: 86400 },
       });
-
-      if (res.ok) {
-        const fallbackData: LrclibItem[] = await res.json();
-        candidate = fallbackData.find((d) => d.syncedLyrics && d.syncedLyrics.trim().length > 0) || fallbackData[0];
+      if (broadRes.ok) {
+        items = await broadRes.json();
       }
     }
 
-    if (candidate) {
-      if (candidate.syncedLyrics) {
-        const parsed = parseLrc(candidate.syncedLyrics);
-        if (parsed.length > 0) {
-          lyricsCache.set(cacheKey, parsed);
-          return parsed;
+    if (Array.isArray(items) && items.length > 0) {
+      // Filter candidates with syncedLyrics and matching artist
+      const syncedCandidates = items.filter((item) => {
+        if (!item.syncedLyrics || !item.syncedLyrics.trim()) return false;
+        const itemArt = (item.artistName || "").toLowerCase();
+        return itemArt.includes(artistLower) || artistLower.includes(itemArt);
+      });
+
+      if (syncedCandidates.length > 0) {
+        // Sort by smallest duration difference against the actual audio duration
+        if (roundedDur > 10) {
+          syncedCandidates.sort((a, b) => {
+            const diffA = Math.abs((a.duration || 0) - roundedDur);
+            const diffB = Math.abs((b.duration || 0) - roundedDur);
+            return diffA - diffB;
+          });
+        }
+
+        const best = syncedCandidates[0];
+        if (best.syncedLyrics) {
+          const parsed = parseLrc(best.syncedLyrics);
+          if (parsed.length > 0) {
+            lyricsCache.set(cacheKey, parsed);
+            return parsed;
+          }
         }
       }
 
-      if (candidate.plainLyrics) {
-        const parsed = generateProportionalTimestamps(
-          candidate.plainLyrics,
-          candidate.duration || durationSec || 180
-        );
-        if (parsed.length > 0) {
-          lyricsCache.set(cacheKey, parsed);
-          return parsed;
+      // Fallback to plain lyrics if synced unavailable
+      const plainCandidates = items.filter((item) => {
+        if (!item.plainLyrics || !item.plainLyrics.trim()) return false;
+        const itemArt = (item.artistName || "").toLowerCase();
+        return itemArt.includes(artistLower) || artistLower.includes(itemArt);
+      });
+
+      if (plainCandidates.length > 0) {
+        if (roundedDur > 10) {
+          plainCandidates.sort((a, b) => {
+            const diffA = Math.abs((a.duration || 0) - roundedDur);
+            const diffB = Math.abs((b.duration || 0) - roundedDur);
+            return diffA - diffB;
+          });
+        }
+
+        const bestPlain = plainCandidates[0];
+        if (bestPlain.plainLyrics) {
+          const parsed = generateProportionalTimestamps(
+            bestPlain.plainLyrics,
+            bestPlain.duration || roundedDur || 180
+          );
+          if (parsed.length > 0) {
+            lyricsCache.set(cacheKey, parsed);
+            return parsed;
+          }
         }
       }
     }

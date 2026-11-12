@@ -70,7 +70,13 @@ export default function MobileNowPlayingSheet() {
   } = usePlayerStore();
 
   const { isMobilePlayerOpen, closeMobilePlayer } = useUIStore();
-  const { lines, activeLine } = useLyricsStore();
+  const {
+    lines,
+    activeLine,
+    lyricOffset,
+    adjustLyricOffset,
+    resetLyricOffset,
+  } = useLyricsStore();
   const { isTrackLiked, toggleLikeTrack } = useLibraryStore();
 
   const [mode, setMode] = useState<"artwork" | "lyrics" | "queue">("artwork");
@@ -280,6 +286,36 @@ export default function MobileNowPlayingSheet() {
                       className="p-2 rounded-full hover:bg-white/10 active:scale-90 transition-transform"
                     >
                       <MoreHorizontal className="w-4 h-4 text-white/80" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lyrics Offset Calibration Pill */}
+                <div className="flex items-center justify-between py-2 px-1 flex-shrink-0">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
+                    Sync Offset
+                  </span>
+                  <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-mono">
+                    <button
+                      onClick={() => adjustLyricOffset(-0.5)}
+                      className="px-2 py-0.5 rounded-full hover:bg-white/15 active:scale-95 text-white/80 transition-all"
+                    >
+                      -0.5s
+                    </button>
+                    <button
+                      onClick={resetLyricOffset}
+                      className={cn(
+                        "px-2 py-0.5 rounded-full transition-all font-semibold",
+                        lyricOffset !== 0 ? "bg-white/20 text-white" : "text-white/50"
+                      )}
+                    >
+                      {lyricOffset > 0 ? `+${lyricOffset.toFixed(1)}s` : lyricOffset < 0 ? `${lyricOffset.toFixed(1)}s` : "0.0s"}
+                    </button>
+                    <button
+                      onClick={() => adjustLyricOffset(0.5)}
+                      className="px-2 py-0.5 rounded-full hover:bg-white/15 active:scale-95 text-white/80 transition-all"
+                    >
+                      +0.5s
                     </button>
                   </div>
                 </div>

@@ -64,25 +64,8 @@ export default function PlayerBar() {
   // Fetch lyrics whenever currentTrack changes
   useEffect(() => {
     if (!currentTrack) return;
-    const { setLyrics, setLoading, clearLyrics } = useLyricsStore.getState();
-    clearLyrics();
-    setLoading(true);
-
-    const params = new URLSearchParams({
-      track: currentTrack.name,
-      artist: currentTrack.artistName,
-      album: currentTrack.albumName || "",
-      duration: String(currentTrack.duration || 0),
-    });
-
-    fetch(`/api/lyrics?${params}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const lines = data.lines || [];
-        setLyrics(lines);
-      })
-      .catch(() => clearLyrics())
-      .finally(() => setLoading(false));
+    const durSec = Math.round((currentTrack.duration || 0) / 1000);
+    useLyricsStore.getState().fetchLyrics(currentTrack.name, currentTrack.artistName, durSec);
   }, [currentTrack]);
 
   // Log track play history

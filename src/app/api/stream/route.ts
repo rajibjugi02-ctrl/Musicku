@@ -70,6 +70,78 @@ const SAAVN_CLUSTERS = [
   "https://jiosaavn-api-private.vercel.app/search/songs",
 ];
 
+function scoreStreamCandidate(
+  title: string,
+  author: string,
+  candidateDurationSec: number,
+  cleanTitle: string,
+  cleanArtist: string,
+  targetDurationSec: number
+): number {
+  const titleLower = (title || "").toLowerCase();
+  const authorLower = (author || "").toLowerCase();
+  const artistLower = cleanArtist.toLowerCase().trim();
+  const cleanTitleLower = cleanTitle.toLowerCase().trim();
+
+  let score = 0;
+
+  // 1. Primary artist matching
+  if (authorLower.includes(artistLower) || titleLower.includes(artistLower)) {
+    score += 500;
+  } else {
+    score -= 400;
+  }
+
+  // 2. Strict duration proximity
+  if (targetDurationSec > 10 && candidateDurationSec > 0) {
+    const diff = Math.abs(candidateDurationSec - targetDurationSec);
+    if (diff === 0) score += 1200;
+    else if (diff <= 1) score += 1000;
+    else if (diff <= 2) score += 800;
+    else if (diff <= 3) score += 650;
+    else if (diff <= 5) score += 400;
+    else if (diff <= 8) score += 200;
+    else if (diff <= 15) score += 50;
+    else score -= 600;
+  }
+
+  // 3. Studio audio boosts (favors official audio & album versions over music videos with dialogue)
+  if (
+    titleLower.includes("official audio") ||
+    titleLower.includes("official lyric video") ||
+    titleLower.includes("lyric video") ||
+    titleLower.includes("lyrics") ||
+    authorLower.endsWith(" - topic") ||
+    titleLower.includes("album version")
+  ) {
+    score += 450;
+  }
+
+  // 4. Filter non-studio elements unless specified in clean title
+  const nonStudioKeywords = [
+    { word: "music video", penalty: 400 },
+    { word: "official video", penalty: 400 },
+    { word: "live", penalty: 600 },
+    { word: "remix", penalty: 500 },
+    { word: "cover", penalty: 700 },
+    { word: "karaoke", penalty: 700 },
+    { word: "instrumental", penalty: 600 },
+    { word: "sped up", penalty: 600 },
+    { word: "slowed", penalty: 600 },
+    { word: "acoustic", penalty: 300 },
+    { word: "reaction", penalty: 800 },
+    { word: "parody", penalty: 800 },
+  ];
+
+  for (const { word, penalty } of nonStudioKeywords) {
+    if (!cleanTitleLower.includes(word) && (titleLower.includes(word) || authorLower.includes(word))) {
+      score -= penalty;
+    }
+  }
+
+  return score;
+}
+
 /**
  * Provider 1: YouTube Music / Video Search + Adaptive Audio Extractor
  * Strict Full-Track Only (Validates duration >= 60 seconds)
@@ -99,19 +171,27 @@ async function fetchFromYouTube(
       const videos = await searchRes.json();
       if (!Array.isArray(videos) || videos.length === 0) continue;
 
-      let candidate = videos[0];
-      if (targetDurationSec > 10) {
-        const matched = videos.find(
-          (v: { lengthSeconds?: number }) =>
-            v.lengthSeconds && Math.abs(v.lengthSeconds - targetDurationSec) <= 35
-        );
-        if (matched) candidate = matched;
-      }
+      // Filter out preview snippets < 45s
+      const validVideos = videos.filter(
+        (v: { videoId?: string; lengthSeconds?: number }) => (v.lengthSeconds || 0) >= 45
+      );
+      if (validVideos.length === 0) continue;
 
-      // Strict duration validation: reject preview snippets < 60s
-      if (candidate.lengthSeconds && candidate.lengthSeconds < 60) {
-        continue;
-      }
+      // Score candidates to guarantee original studio track
+      const scored = validVideos.map((v: { videoId?: string; title?: string; author?: string; lengthSeconds?: number }) => ({
+        video: v,
+        score: scoreStreamCandidate(
+          v.title || "",
+          v.author || "",
+          v.lengthSeconds || 0,
+          cleanTitle,
+          cleanArtist,
+          targetDurationSec
+        ),
+      }));
+
+      scored.sort((a, b) => b.score - a.score);
+      const candidate = scored[0].video;
 
       const videoId = candidate.videoId;
       if (!videoId) continue;
@@ -188,15 +268,35 @@ async function fetchFromJioSaavn(
       throw new Error("No songs in Saavn cluster");
     }
 
-    let candidate = songs[0];
-    if (targetDurationSec > 10) {
-      const match = songs.find(
-        (s: { duration?: number }) =>
-          s.duration && Math.abs(s.duration - targetDurationSec) <= 35
-      );
-      if (match) candidate = match;
+    interface SaavnSongItem {
+      name?: string;
+      title?: string;
+      primaryArtists?: string;
+      singers?: string;
+      duration?: number | string;
+      download_url?: Array<{ quality?: string; link?: string; url?: string }>;
+      downloadUrl?: Array<{ quality?: string; link?: string; url?: string }>;
     }
 
+    const validSongs = (songs as SaavnSongItem[]).filter((s) => Number(s.duration || 0) >= 45);
+    if (validSongs.length === 0) {
+      throw new Error("No full-track songs in Saavn cluster");
+    }
+
+    const scored = validSongs.map((s) => ({
+      song: s,
+      score: scoreStreamCandidate(
+        s.name || s.title || "",
+        s.primaryArtists || s.singers || "",
+        Number(s.duration || 0),
+        cleanTitle,
+        cleanArtist,
+        targetDurationSec
+      ),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+    const candidate = scored[0].song;
     const durationSec = Number(candidate.duration || targetDurationSec || 0);
     // Strict duration validation: reject preview snippets < 60s
     if (durationSec > 0 && durationSec < 60) {
@@ -217,7 +317,7 @@ async function fetchFromJioSaavn(
           d.quality === "96kbps" || (d.link || d.url || "").includes("_96.")
       );
       const best = quality160 || quality96 || downloadUrls[downloadUrls.length - 1];
-      chosenUrl = best?.link || best?.url || downloadUrls[0]?.link || downloadUrls[0]?.url;
+      chosenUrl = best?.link || best?.url || downloadUrls[0]?.link || downloadUrls[0]?.url || "";
     } else if (typeof downloadUrls === "string") {
       chosenUrl = downloadUrls;
     }
@@ -229,7 +329,7 @@ async function fetchFromJioSaavn(
     return {
       streamUrl,
       proxyUrl,
-      duration: Math.max(durationSec, 180) * 1000,
+      duration: (durationSec > 0 ? durationSec : targetDurationSec || 180) * 1000,
       source: "jiosaavn" as const,
       isFallback: false as const,
     };

@@ -165,6 +165,13 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
       }
       if (Number.isFinite(dur) && dur >= 45) {
         setDuration(dur * 1000);
+
+        // Re-sync lyrics with ground-truth audio duration if delta exceeds 2 seconds
+        const actualSec = Math.round(dur);
+        const initialSec = Math.round((currentTrack?.duration || 0) / 1000);
+        if (currentTrack && Math.abs(actualSec - initialSec) > 2) {
+          useLyricsStore.getState().fetchLyrics(currentTrack.name, currentTrack.artistName, actualSec);
+        }
       }
     };
 
