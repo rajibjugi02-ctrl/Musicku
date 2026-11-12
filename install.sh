@@ -48,3 +48,4 @@ echo -e "\n\033[32m────────────────────�
 echo -e "\033[32m  ✔ Musicku CLI (opmusic) berhasil terpasang!\033[0m"
 echo -e "\033[32m───────────────────────────────────────────────────────\033[0m\n"
 echo -e "Jalankan perintah berikut:\n  \033[36mopmusic\033[0m          (Buka Musicku)\n  \033[36mopmusic --cloud\033[0m  (Buka versi Cloud)\n  \033[36mopmusic --dev\033[0m    (Jalankan server lokal)\n  \033[36mopmusic --help\033[0m   (Lihat panduan parameter)\n"
+

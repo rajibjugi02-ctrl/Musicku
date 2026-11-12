@@ -1,4 +1,4 @@
-﻿# Musicku CLI Windows Installer
+# Musicku CLI Windows Installer
 # Run in PowerShell: irm https://raw.githubusercontent.com/rajibjugi02-ctrl/Musicku/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
@@ -62,3 +62,4 @@ Write-Host "  opmusic --cloud   (Buka versi Cloud Production)" -ForegroundColor 
 Write-Host "  opmusic --dev     (Jalankan server lokal)" -ForegroundColor Cyan
 Write-Host "  opmusic --help    (Lihat panduan lengkap)" -ForegroundColor Cyan
 Write-Host ""
+

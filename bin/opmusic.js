@@ -163,3 +163,4 @@ switch (firstArg) {
     handleDefaultLaunch();
     break;
 }
+
