@@ -22,8 +22,9 @@ interface PlayerState {
   seekTarget: number | null;    // pending seek position in ms
   isShuffle: boolean;
   repeatMode: "none" | "one" | "all";
-  audioQuality: "normal" | "high" | "lossless";
-  sleepTimerEnd: number | null; // Date.now() ms, null = off
+  audioQuality: "normal" | "lossless" | "hi-res";
+  sleepTimerEnd: number | null; // Date.now() ms, null = off, -1 = end of track
+  sleepTimerOption: "off" | "15" | "30" | "45" | "60" | "end-of-track";
   streamCache: Record<string, CachedStream>; // client-side prefetch cache
 
   // Actions
@@ -41,6 +42,7 @@ interface PlayerState {
   setResolvingStream: (loading: boolean) => void;
   setBuffering: (buffering: boolean) => void;
   setVolume: (v: number) => void;
+  setAudioQuality: (q: "normal" | "lossless" | "hi-res") => void;
   prefetchTrackStream: (track: PlayerTrack) => Promise<void>;
   prefetchTrack: (track: PlayerTrack) => Promise<void>;
   generateSmartRadioQueue: (track: PlayerTrack) => Promise<void>;
@@ -51,7 +53,7 @@ interface PlayerState {
   shuffleQueue: () => void;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
-  setSleepTimer: (minutes: number | null) => void;
+  setSleepTimer: (option: "off" | "15" | "30" | "45" | "60" | "end-of-track") => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -70,8 +72,9 @@ export const usePlayerStore = create<PlayerState>()(
       seekTarget: null,
       isShuffle: false,
       repeatMode: "none",
-      audioQuality: "high",
+      audioQuality: "lossless",
       sleepTimerEnd: null,
+      sleepTimerOption: "off",
       streamCache: {},
 
       play(track, queue) {
@@ -358,10 +361,22 @@ export const usePlayerStore = create<PlayerState>()(
         }));
       },
 
-      setSleepTimer(minutes) {
-        set({
-          sleepTimerEnd: minutes ? Date.now() + minutes * 60_000 : null,
-        });
+      setAudioQuality(audioQuality) {
+        set({ audioQuality });
+      },
+
+      setSleepTimer(option) {
+        if (option === "off") {
+          set({ sleepTimerOption: "off", sleepTimerEnd: null });
+        } else if (option === "end-of-track") {
+          set({ sleepTimerOption: "end-of-track", sleepTimerEnd: -1 });
+        } else {
+          const minutes = parseInt(option, 10);
+          set({
+            sleepTimerOption: option,
+            sleepTimerEnd: Date.now() + minutes * 60_000,
+          });
+        }
       },
     }),
     {

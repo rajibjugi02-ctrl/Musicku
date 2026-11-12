@@ -24,6 +24,8 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { useUIStore } from "@/store/useUIStore";
 import type { PlayerTrack } from "@/types/music";
 import { cn } from "@/lib/utils";
+import ShareLyricsModal from "./ShareLyricsModal";
+import TrackCreditsModal from "./TrackCreditsModal";
 
 interface TrackActionMenuProps {
   track: PlayerTrack;
@@ -46,6 +48,8 @@ export default function TrackActionMenu({
   const [shareViewOpen, setShareViewOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isShareLyricsOpen, setIsShareLyricsOpen] = useState(false);
+  const [isCreditsOpen, setIsCreditsOpen] = useState(false);
 
   const isFavorited = isTrackLiked(track.id);
 
@@ -68,11 +72,12 @@ export default function TrackActionMenu({
   const handleGoToAlbum = () => {
     onClose();
     closeMobilePlayer();
-    router.push(`/artist/${encodeURIComponent(track.artistName)}`);
+    router.push(`/search?q=${encodeURIComponent(track.albumName || track.name)}`);
   };
 
   const handleCreateStation = () => {
-    showToast(`Radio station for ${track.name} created!`);
+    showToast(`Radio station for "${track.name}" created!`);
+    usePlayerStore.getState().generateSmartRadioQueue(track);
     onClose();
   };
 
@@ -258,9 +263,7 @@ export default function TrackActionMenu({
 
                   {/* View Credits */}
                   <button
-                    onClick={() => {
-                      showToast(`High-Speed 160kbps AAC · ${track.artistName}`);
-                    }}
+                    onClick={() => setIsCreditsOpen(true)}
                     className="flex items-center gap-3.5 px-3 py-2.5 hover:bg-white/10 active:bg-white/15 rounded-xl transition-colors cursor-pointer text-left"
                   >
                     <Info className="w-4 h-4 text-zinc-300 flex-shrink-0" />
@@ -269,7 +272,7 @@ export default function TrackActionMenu({
 
                   {/* Share Lyrics */}
                   <button
-                    onClick={handleCopyLink}
+                    onClick={() => setIsShareLyricsOpen(true)}
                     className="flex items-center gap-3.5 px-3 py-2.5 hover:bg-white/10 active:bg-white/15 rounded-xl transition-colors cursor-pointer text-left"
                   >
                     <MessageSquareQuote className="w-4 h-4 text-zinc-300 flex-shrink-0" />
@@ -345,6 +348,20 @@ export default function TrackActionMenu({
           </motion.div>
         </>
       )}
+
+      {/* Share Track & Lyrics Modal */}
+      <ShareLyricsModal
+        track={track}
+        isOpen={isShareLyricsOpen}
+        onClose={() => setIsShareLyricsOpen(false)}
+      />
+
+      {/* View Credits Modal */}
+      <TrackCreditsModal
+        track={track}
+        isOpen={isCreditsOpen}
+        onClose={() => setIsCreditsOpen(false)}
+      />
     </AnimatePresence>
   );
 }

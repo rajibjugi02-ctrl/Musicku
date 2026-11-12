@@ -7,19 +7,19 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import WaveformVisualizer from "./WaveformVisualizer";
 import { cn } from "@/lib/utils";
 
-const SLEEP_OPTIONS = [15, 30, 45, 60] as const;
+const SLEEP_OPTIONS = ["15", "30", "45", "60"] as const;
 
 export default function EnhancementsPanel() {
-  const { currentTrack, sleepTimerEnd, setSleepTimer, audioQuality } = usePlayerStore();
+  const { currentTrack, sleepTimerEnd, sleepTimerOption, setSleepTimer, audioQuality } = usePlayerStore();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!sleepTimerEnd) { setTimeLeft(null); return; }
+    if (!sleepTimerEnd || sleepTimerEnd === -1) { setTimeLeft(null); return; }
     const id = setInterval(() => {
       const left = sleepTimerEnd - Date.now();
       if (left <= 0) {
         usePlayerStore.getState().pause();
-        setSleepTimer(null);
+        setSleepTimer("off");
         setTimeLeft(null);
       } else {
         setTimeLeft(left);
@@ -48,12 +48,14 @@ export default function EnhancementsPanel() {
         <div className="flex items-center gap-2">
           <div className={cn(
             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border",
-            audioQuality === "lossless"
-              ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
-              : "bg-zinc-800/60 border-white/10 text-zinc-400"
+            audioQuality === "hi-res"
+              ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+              : audioQuality === "lossless"
+                ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
+                : "bg-zinc-800/60 border-white/10 text-zinc-400"
           )}>
             <Zap className="w-3 h-3" />
-            {audioQuality === "lossless" ? "Lossless" : audioQuality === "high" ? "High Quality" : "Normal"}
+            {audioQuality === "hi-res" ? "Hi-Res Lossless" : audioQuality === "lossless" ? "Lossless" : "Normal"}
           </div>
         </div>
       </div>
@@ -84,25 +86,30 @@ export default function EnhancementsPanel() {
               — {formatLeft(timeLeft)}
             </span>
           )}
+          {sleepTimerOption === "end-of-track" && (
+            <span className="text-zinc-400 normal-case tracking-normal font-mono">
+              — End of Track
+            </span>
+          )}
         </p>
         <div className="flex flex-wrap gap-1.5">
           {SLEEP_OPTIONS.map((min) => (
             <button
               key={min}
-              onClick={() => setSleepTimer(sleepTimerEnd ? null : min)}
+              onClick={() => setSleepTimer(sleepTimerOption === min ? "off" : min)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                sleepTimerEnd
-                  ? "bg-zinc-800/40 border-white/8 text-zinc-500"
+                sleepTimerOption === min
+                  ? "bg-blue-600 border-blue-500 text-white"
                   : "bg-zinc-800/60 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"
               )}
             >
               {min}m
             </button>
           ))}
-          {sleepTimerEnd && (
+          {sleepTimerOption !== "off" && (
             <button
-              onClick={() => setSleepTimer(null)}
+              onClick={() => setSleepTimer("off")}
               className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
             >
               Cancel

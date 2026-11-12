@@ -24,7 +24,15 @@ export default function MobileNav() {
   const router = useRouter();
   const { avatarUrl } = useProfileStore();
 
-  const activeIdx = Math.max(0, TABS.findIndex((t) => t.href === pathname));
+  const activeIdx = Math.max(
+    0,
+    TABS.findIndex((t) => {
+      if (t.href === "/profile") {
+        return pathname.startsWith("/profile") || pathname.startsWith("/settings");
+      }
+      return t.href === pathname;
+    })
+  );
   const isRealAvatar =
     avatarUrl &&
     !avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") &&
@@ -37,8 +45,18 @@ export default function MobileNav() {
   const [isPressing, setIsPressing] = useState(false);
   const [scrubbedIdx, setScrubbedIdx] = useState<number | null>(null);
   const isDraggingRef = useRef(false);
+  const pointerStartXRef = useRef(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const lastHapticIdx = useRef(activeIdx);
+
+  // Instant route prefetching for 0ms transitions
+  useEffect(() => {
+    TABS.forEach((t) => {
+      try {
+        router.prefetch(t.href);
+      } catch {}
+    });
+  }, [router]);
 
   // Sync indicator position whenever route changes externally
   useEffect(() => {
@@ -75,6 +93,7 @@ export default function MobileNav() {
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     isDraggingRef.current = true;
+    pointerStartXRef.current = e.clientX;
     setIsPressing(true);
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -101,7 +120,7 @@ export default function MobileNav() {
     dragX.set(finalIdx * TAB_WIDTH);
     setScrubbedIdx(null);
 
-    // Navigate only on pointer release
+    // Instant zero-delay navigation
     const targetTab = TABS[finalIdx];
     if (targetTab && pathname !== targetTab.href) {
       router.push(targetTab.href);

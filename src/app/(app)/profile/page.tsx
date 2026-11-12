@@ -141,7 +141,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 flex flex-col gap-8 max-w-5xl mx-auto select-none pb-44 md:pb-8 text-zinc-950 dark:text-zinc-100">
+    <div className="px-3 sm:px-6 md:px-8 py-4 sm:py-6 flex flex-col gap-6 sm:gap-8 w-full max-w-5xl mx-auto select-none pb-44 md:pb-8 text-zinc-950 dark:text-zinc-100">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -337,124 +337,108 @@ export default function ProfilePage() {
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          4. EDIT PROFILE MODAL / SHEET (Spring Bounce & Sharp Contrast)
+          4. EDIT PROFILE MODAL (Compact, Proportional & Pure Blur)
          ───────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isEditModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/60 backdrop-blur-2xl">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsEditModalOpen(false)}
-              className="absolute inset-0 bg-black/75 dark:bg-black/85 backdrop-blur-md"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, y: 60, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 60, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              className="relative w-full max-w-lg bg-white dark:bg-[#121624] rounded-t-[32px] sm:rounded-[30px] p-6 pb-10 sm:pb-7 shadow-2xl z-10 flex flex-col gap-4 border border-black/10 dark:border-white/15 text-zinc-950 dark:text-zinc-100 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto scrollbar-thin"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", stiffness: 420, damping: 28 }}
+              className="w-[92vw] max-w-[380px] max-h-[80dvh] rounded-[28px] overflow-hidden flex flex-col glass-panel bg-white/95 dark:bg-zinc-900/95 border border-black/10 dark:border-white/15 shadow-2xl text-zinc-950 dark:text-zinc-100"
             >
-              {/* Mobile iOS Sheet Drag Indicator */}
-              <div className="w-10 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto -mt-2 mb-1 sm:hidden" />
-
-              {/* Modal Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-black/[0.08] dark:border-white/[0.08]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-zinc-100 dark:bg-white/10 flex items-center justify-center text-zinc-950 dark:text-white">
-                    <Edit3 className="w-4 h-4" />
+              {/* Sticky Modal Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08] sticky top-0 bg-inherit backdrop-blur-xl z-10 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-white/10 flex items-center justify-center text-zinc-950 dark:text-white">
+                    <Edit3 className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-base font-bold tracking-tight text-zinc-950 dark:text-white">
+                  <h3 className="text-sm font-bold tracking-tight text-zinc-950 dark:text-white">
                     Edit Profile
                   </h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                  className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Form Content */}
-              <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
-                {/* 1. Avatar Uploader & Presets */}
-                <div className="flex flex-col gap-3">
-                  <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200">
-                    Profile Photo
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-black/15 dark:border-white/20 flex-shrink-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-800">
-                      {editAvatar &&
-                        !editAvatar.includes("324c50c04a5a944117cd3daa0963fc63") &&
-                        !editAvatar.includes("photo-1534528741775") ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={editAvatar}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-10 h-10 text-zinc-400 dark:text-zinc-500 stroke-[1.5]" />
-                      )}
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] text-white">
-                          Processing...
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-white/10 text-xs font-semibold text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-white/15 transition-all cursor-pointer border border-black/10 dark:border-white/15"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Photo</span>
-                        </button>
-
-                        {editAvatar && (
-                          <button
-                            type="button"
-                            onClick={() => setEditAvatar("")}
-                            className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-all cursor-pointer border border-rose-500/20"
-                          >
-                            Remove
-                          </button>
+              {/* Scrollable Form Body */}
+              <form onSubmit={handleSaveProfile} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="p-5 overflow-y-auto space-y-4 flex-1 overscroll-contain">
+                  {/* 1. Avatar Uploader & Presets */}
+                  <div className="flex flex-col gap-2.5">
+                    <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200">
+                      Profile Photo
+                    </label>
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-md border-2 border-black/15 dark:border-white/20 flex-shrink-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-800">
+                        {editAvatar &&
+                          !editAvatar.includes("324c50c04a5a944117cd3daa0963fc63") &&
+                          !editAvatar.includes("photo-1534528741775") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={editAvatar}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-8 h-8 text-zinc-400 dark:text-zinc-500 stroke-[1.5]" />
+                        )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[9px] text-white">
+                            ...
+                          </div>
                         )}
                       </div>
-                      <p className="text-[10px] text-zinc-500">
-                        PNG, JPG, or WEBP. Auto-compressed with Canvas.
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Preset Avatars Selection */}
-                  <div className="flex flex-col gap-1.5 pt-1">
-                    <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
-                      Or choose from presets:
-                    </span>
-                    <div className="flex items-center gap-2.5 overflow-x-auto py-1">
+                      <div className="flex flex-col gap-1.5 flex-1">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-white/10 text-xs font-semibold text-zinc-900 dark:text-white hover:bg-zinc-200 dark:hover:bg-white/15 transition-all cursor-pointer border border-black/10 dark:border-white/15"
+                          >
+                            <Upload className="w-3 h-3" />
+                            <span>Upload</span>
+                          </button>
+
+                          {editAvatar && (
+                            <button
+                              type="button"
+                              onClick={() => setEditAvatar("")}
+                              className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-all cursor-pointer border border-rose-500/20"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Presets */}
+                    <div className="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
                       {PRESET_AVATARS.map((url, i) => (
                         <button
                           key={i}
                           type="button"
                           onClick={() => setEditAvatar(url)}
                           className={cn(
-                            "w-11 h-11 rounded-full overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0",
+                            "w-9 h-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0",
                             editAvatar === url
-                              ? "border-indigo-600 dark:border-white scale-110 shadow-md ring-2 ring-indigo-500/30"
+                              ? "border-indigo-600 dark:border-white scale-110 shadow-sm"
                               : "border-transparent opacity-70 hover:opacity-100"
                           )}
                         >
@@ -464,84 +448,76 @@ export default function ProfilePage() {
                       ))}
                     </div>
                   </div>
-                </div>
 
-                {/* 2. Full Name Input */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-1.5 block">
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Your full name"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs text-zinc-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
-                  />
-                </div>
-
-                {/* 3. Username Input */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-1.5 block">
-                    Username
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-400 select-none">
-                      @
-                    </span>
+                  {/* 2. Display Name */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-1 block">
+                      Display Name
+                    </label>
                     <input
                       type="text"
                       required
-                      value={editUsername}
-                      onChange={(e) => setEditUsername(e.target.value)}
-                      placeholder="username"
-                      className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs font-mono text-zinc-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Your full name"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs text-zinc-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-1">
-                    Unique handle for your public profile.
-                  </p>
-                </div>
 
-                {/* 4. Bio Textarea with 160-char counter */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200">
-                      Bio
+                  {/* 3. Username */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-1 block">
+                      Username
                     </label>
-                    <span
-                      className={cn(
-                        "text-[10px] font-mono",
-                        editBio.length > 150 ? "text-amber-500 font-bold" : "text-zinc-400"
-                      )}
-                    >
-                      {editBio.length}/160
-                    </span>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-400 select-none">
+                        @
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={editUsername}
+                        onChange={(e) => setEditUsername(e.target.value)}
+                        placeholder="username"
+                        className="w-full pl-7 pr-3 py-2 rounded-xl bg-zinc-100 dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs font-mono text-zinc-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
                   </div>
-                  <textarea
-                    rows={3}
-                    maxLength={160}
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    placeholder="Tell other listeners about your taste in music..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs text-zinc-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-all leading-relaxed font-medium"
-                  />
+
+                  {/* 4. Bio */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200">
+                        Bio
+                      </label>
+                      <span className="text-[10px] font-mono text-zinc-400">
+                        {editBio.length}/160
+                      </span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      maxLength={160}
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
+                      placeholder="Tell other listeners about your taste in music..."
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs text-zinc-950 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none leading-relaxed"
+                    />
+                  </div>
                 </div>
 
-                {/* Modal Footer Actions */}
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
+                {/* Sticky Glass Footer */}
+                <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-black/[0.08] dark:border-white/[0.08] bg-inherit backdrop-blur-xl flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!editName.trim()}
-                    className="px-5 py-2.5 rounded-full bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                   >
                     Save Changes
                   </button>

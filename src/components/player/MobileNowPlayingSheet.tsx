@@ -67,16 +67,11 @@ export default function MobileNowPlayingSheet() {
     toggleShuffle,
     shuffleQueue,
     cycleRepeat,
+    audioQuality,
   } = usePlayerStore();
 
   const { isMobilePlayerOpen, closeMobilePlayer } = useUIStore();
-  const {
-    lines,
-    activeLine,
-    lyricOffset,
-    adjustLyricOffset,
-    resetLyricOffset,
-  } = useLyricsStore();
+  const { lines, activeLine } = useLyricsStore();
   const { isTrackLiked, toggleLikeTrack } = useLibraryStore();
 
   const [mode, setMode] = useState<"artwork" | "lyrics" | "queue">("artwork");
@@ -211,6 +206,15 @@ export default function MobileNowPlayingSheet() {
                       <span className="flex-shrink-0 text-[10px] font-bold bg-white/20 text-white/90 px-1 py-0.5 rounded leading-none">
                         E
                       </span>
+                      {audioQuality === "hi-res" ? (
+                        <span className="flex-shrink-0 text-[9px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1.5 py-0.5 rounded leading-none">
+                          HI-RES LOSSLESS
+                        </span>
+                      ) : audioQuality === "lossless" ? (
+                        <span className="flex-shrink-0 text-[9px] font-mono font-bold bg-indigo-400/20 text-indigo-200 border border-indigo-400/30 px-1.5 py-0.5 rounded leading-none">
+                          LOSSLESS
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-sm font-medium text-white/60 truncate mt-0.5">
                       {currentTrack.artistName}
@@ -290,36 +294,6 @@ export default function MobileNowPlayingSheet() {
                   </div>
                 </div>
 
-                {/* Lyrics Offset Calibration Pill */}
-                <div className="flex items-center justify-between py-2 px-1 flex-shrink-0">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
-                    Sync Offset
-                  </span>
-                  <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-mono">
-                    <button
-                      onClick={() => adjustLyricOffset(-0.5)}
-                      className="px-2 py-0.5 rounded-full hover:bg-white/15 active:scale-95 text-white/80 transition-all"
-                    >
-                      -0.5s
-                    </button>
-                    <button
-                      onClick={resetLyricOffset}
-                      className={cn(
-                        "px-2 py-0.5 rounded-full transition-all font-semibold",
-                        lyricOffset !== 0 ? "bg-white/20 text-white" : "text-white/50"
-                      )}
-                    >
-                      {lyricOffset > 0 ? `+${lyricOffset.toFixed(1)}s` : lyricOffset < 0 ? `${lyricOffset.toFixed(1)}s` : "0.0s"}
-                    </button>
-                    <button
-                      onClick={() => adjustLyricOffset(0.5)}
-                      className="px-2 py-0.5 rounded-full hover:bg-white/15 active:scale-95 text-white/80 transition-all"
-                    >
-                      +0.5s
-                    </button>
-                  </div>
-                </div>
-
                 {/* Live Synced Lyrics Stream */}
                 <div className="flex-1 overflow-y-auto scrollbar-none py-4 space-y-5 relative">
                   {lines.length === 0 ? (
@@ -347,24 +321,6 @@ export default function MobileNowPlayingSheet() {
                       );
                     })
                   )}
-
-                  {/* Apple Music Sing / Karaoke Floating Mic */}
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {
-                      setIsKaraokeActive(!isKaraokeActive);
-                      showToast(isKaraokeActive ? "Apple Sing Off" : "Apple Sing Active: Vocals Focused");
-                    }}
-                    className={cn(
-                      "fixed right-6 bottom-44 z-20 w-11 h-11 rounded-full flex items-center justify-center shadow-xl backdrop-blur-xl border transition-all cursor-pointer",
-                      isKaraokeActive
-                        ? "bg-white text-zinc-950 border-white shadow-white/20"
-                        : "glass-pill bg-white/15 text-white/80 border-white/20 hover:text-white"
-                    )}
-                  >
-                    <Mic className="w-4 h-4" />
-                    <Sparkles className="w-2.5 h-2.5 absolute top-2 right-2 text-amber-300" />
-                  </motion.button>
                 </div>
               </div>
             )}

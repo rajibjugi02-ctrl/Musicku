@@ -28,6 +28,7 @@ interface LibraryState {
 
   // Custom Libraries / Playlists
   createLibrary: (name: string, description?: string, coverUrl?: string) => string;
+  updateCustomLibrary: (id: string, updates: { name?: string; description?: string; coverUrl?: string }) => void;
   deleteLibrary: (libraryId: string) => void;
   addTrackToLibrary: (libraryId: string, track: PlayerTrack) => void;
   removeTrackFromLibrary: (libraryId: string, trackId: string) => void;
@@ -131,6 +132,14 @@ export const useLibraryStore = create<LibraryState>()(
         }));
 
         return id;
+      },
+
+      updateCustomLibrary(id, updates) {
+        set((state) => ({
+          customLibraries: state.customLibraries.map((lib) =>
+            lib.id === id ? { ...lib, ...updates } : lib
+          ),
+        }));
       },
 
       deleteLibrary(libraryId) {

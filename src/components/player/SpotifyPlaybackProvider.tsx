@@ -65,6 +65,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
   const consecutiveFailuresRef = useRef<number>(0);
   const lastSkipTimeRef = useRef<number>(0);
+  const lastTimeUpdateRef = useRef<number>(0);
 
   const {
     currentTrack,
@@ -74,6 +75,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     volume,
     seekTarget,
     streamCache,
+    sleepTimerEnd,
     setPosition,
     setDuration,
     setStream,
@@ -82,7 +84,21 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     clearSeekTarget,
     prefetchTrackStream,
     next,
+    pause,
+    setSleepTimer,
   } = usePlayerStore();
+
+  // Active Sleep Timer Monitor
+  useEffect(() => {
+    if (!sleepTimerEnd || sleepTimerEnd <= 0) return;
+    const interval = setInterval(() => {
+      if (Date.now() >= sleepTimerEnd) {
+        pause();
+        setSleepTimer("off");
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sleepTimerEnd, pause, setSleepTimer]);
 
   const syncToPosition = useLyricsStore((s) => s.syncToPosition);
 
@@ -143,8 +159,12 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
 
     const onTimeUpdate = () => {
       if (!audio) return;
-      const ms = audio.currentTime * 1000;
-      setPosition(ms);
+      const now = Date.now();
+      // Anti-lag: Throttle store position update to max 4x/sec (250ms) to eliminate mobile CPU overhead
+      if (now - lastTimeUpdateRef.current >= 250) {
+        lastTimeUpdateRef.current = now;
+        setPosition(audio.currentTime * 1000);
+      }
       syncToPosition(audio.currentTime);
     };
 
@@ -213,6 +233,12 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
 
     const onEnded = () => {
       clearWatchdog();
+      const { sleepTimerOption, setSleepTimer, pause } = usePlayerStore.getState();
+      if (sleepTimerOption === "end-of-track") {
+        pause();
+        setSleepTimer("off");
+        return;
+      }
       next();
     };
 

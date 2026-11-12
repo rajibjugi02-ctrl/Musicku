@@ -8,15 +8,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { cn } from "@/lib/utils";
 
 export default function LyricsPanel() {
-  const {
-    lines,
-    activeLine,
-    isLoading,
-    isInstrumental,
-    lyricOffset,
-    adjustLyricOffset,
-    resetLyricOffset,
-  } = useLyricsStore();
+  const { lines, activeLine, isLoading, isInstrumental } = useLyricsStore();
   const { currentTrack, position, seekTo, resume } = usePlayerStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,41 +116,6 @@ export default function LyricsPanel() {
 
   return (
     <div className="relative h-full overflow-hidden flex flex-col">
-      {/* Real-time Lyrics Offset & Calibration Capsule */}
-      <div className="flex items-center justify-between px-5 py-2.5 z-10 border-b border-black/5 dark:border-white/5 bg-background/50 backdrop-blur-md">
-        <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-          Lyrics Sync
-        </span>
-        <div className="inline-flex items-center gap-1 p-0.5 rounded-full glass-pill border border-black/10 dark:border-white/10 text-[10px] font-mono">
-          <button
-            onClick={() => adjustLyricOffset(-0.5)}
-            className="px-2 py-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/15 active:scale-95 transition-all text-zinc-700 dark:text-zinc-300"
-            title="Lyrics lead earlier by 0.5s"
-          >
-            -0.5s
-          </button>
-          <button
-            onClick={resetLyricOffset}
-            className={cn(
-              "px-2 py-0.5 rounded-full transition-all font-semibold",
-              lyricOffset !== 0
-                ? "bg-indigo-500/20 text-indigo-600 dark:text-indigo-300"
-                : "text-zinc-500 dark:text-zinc-400"
-            )}
-            title="Reset timing offset"
-          >
-            {lyricOffset > 0 ? `+${lyricOffset.toFixed(1)}s` : lyricOffset < 0 ? `${lyricOffset.toFixed(1)}s` : "0.0s"}
-          </button>
-          <button
-            onClick={() => adjustLyricOffset(0.5)}
-            className="px-2 py-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/15 active:scale-95 transition-all text-zinc-700 dark:text-zinc-300"
-            title="Lyrics delay later by 0.5s"
-          >
-            +0.5s
-          </button>
-        </div>
-      </div>
-
       {/* Floating Resume Auto-Scroll Pill */}
       <AnimatePresence>
         {showResumeScroll && (

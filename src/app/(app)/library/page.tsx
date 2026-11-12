@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Library,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 type Tab = "libraries" | "favorites" | "artists" | "history";
 
 export default function LibraryPage() {
+  const router = useRouter();
   const {
     customLibraries,
     likedTracks,
@@ -248,7 +250,7 @@ export default function LibraryPage() {
               {customLibraries.map((lib) => (
                 <div
                   key={lib.id}
-                  onClick={() => setSelectedLibrary(lib)}
+                  onClick={() => router.push(`/library/${lib.id}`)}
                   className="p-3.5 sm:p-4 rounded-[24px] glass-panel bg-white/70 dark:bg-black/30 border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/25 flex items-center justify-between gap-3 group cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] shadow-sm hover:shadow-md"
                 >
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
