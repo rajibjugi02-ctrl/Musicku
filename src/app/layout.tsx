@@ -30,6 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#070709" />
         {/* Service Worker Registration */}
         <script
           dangerouslySetInnerHTML={{

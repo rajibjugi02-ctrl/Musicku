@@ -68,7 +68,7 @@ export default function MobileNav() {
       if (typeof window !== "undefined" && "vibrate" in navigator) {
         try {
           navigator.vibrate(8);
-        } catch {}
+        } catch { }
       }
     }
   };
@@ -78,7 +78,7 @@ export default function MobileNav() {
     setIsPressing(true);
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
+    } catch { }
     updatePositionFromPointer(e.clientX);
   };
 
@@ -93,7 +93,7 @@ export default function MobileNav() {
     setIsPressing(false);
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
+    } catch { }
 
     // Snap to nearest tab index
     const currentX = dragX.get();

@@ -170,8 +170,8 @@ export default function ProfilePage() {
           <div className="relative group">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-xl border-2 border-black/15 dark:border-white/25 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
               {avatarUrl &&
-              !avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") &&
-              !avatarUrl.includes("photo-1534528741775") ? (
+                !avatarUrl.includes("324c50c04a5a944117cd3daa0963fc63") &&
+                !avatarUrl.includes("photo-1534528741775") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={avatarUrl}
@@ -388,8 +388,8 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20 rounded-full overflow-hidden shadow-lg border-2 border-black/15 dark:border-white/20 flex-shrink-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-800">
                       {editAvatar &&
-                      !editAvatar.includes("324c50c04a5a944117cd3daa0963fc63") &&
-                      !editAvatar.includes("photo-1534528741775") ? (
+                        !editAvatar.includes("324c50c04a5a944117cd3daa0963fc63") &&
+                        !editAvatar.includes("photo-1534528741775") ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={editAvatar}

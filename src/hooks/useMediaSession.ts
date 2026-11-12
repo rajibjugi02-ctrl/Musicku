@@ -29,16 +29,16 @@ export function useMediaSession() {
 
     const artwork = currentTrack.albumArt
       ? [
-          { src: currentTrack.albumArt, sizes: "96x96", type: "image/jpeg" },
-          { src: currentTrack.albumArt, sizes: "128x128", type: "image/jpeg" },
-          { src: currentTrack.albumArt, sizes: "192x192", type: "image/jpeg" },
-          { src: currentTrack.albumArt, sizes: "256x256", type: "image/jpeg" },
-          { src: currentTrack.albumArt, sizes: "384x384", type: "image/jpeg" },
-          { src: currentTrack.albumArt, sizes: "512x512", type: "image/jpeg" },
-        ]
+        { src: currentTrack.albumArt, sizes: "96x96", type: "image/jpeg" },
+        { src: currentTrack.albumArt, sizes: "128x128", type: "image/jpeg" },
+        { src: currentTrack.albumArt, sizes: "192x192", type: "image/jpeg" },
+        { src: currentTrack.albumArt, sizes: "256x256", type: "image/jpeg" },
+        { src: currentTrack.albumArt, sizes: "384x384", type: "image/jpeg" },
+        { src: currentTrack.albumArt, sizes: "512x512", type: "image/jpeg" },
+      ]
       : [
-          { src: "/logo.png", sizes: "512x512", type: "image/png" },
-        ];
+        { src: "/logo.png", sizes: "512x512", type: "image/png" },
+      ];
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.name,
@@ -98,7 +98,7 @@ export function useMediaSession() {
       actionHandlers.forEach(([action]) => {
         try {
           navigator.mediaSession.setActionHandler(action, null);
-        } catch {}
+        } catch { }
       });
     };
   }, [resume, pause, next, prev, seekTo]);
