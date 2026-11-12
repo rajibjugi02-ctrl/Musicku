@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<p align="center">
+  <img src="public/logo.png" width="96" height="96" alt="Musicku Logo" style="border-radius: 24px;" />
+</p>
 
-## Getting Started
+<h1 align="center">Musicku — Liquid Audio Streaming</h1>
 
-First, run the development server:
+<p align="center">
+  Aplikasi streaming musik modern berestetika <b>Apple iOS 26 Liquid Glassmorphism</b> dengan lirik real-time tersinkronisasi, kontrol Lock Screen (Media Session API), dan launcher terminal <b><code>opmusic</code></b>.
+</p>
 
+<p align="center">
+  <a href="https://musickus.vercel.app">🌐 Live Demo (Cloud Production)</a> •
+  <a href="#instalasi-global">🚀 Instalasi CLI</a> •
+  <a href="#penggunaan-cli">💻 Penggunaan</a> •
+  <a href="#clone--setup-lokal">🛠️ Setup Clone</a>
+</p>
+
+---
+
+## Instalasi Global
+
+Jalankan salah satu metode berikut untuk menginstal perintah **`opmusic`** secara global di terminal Anda:
+
+### 1. Melalui npm link dari repositori lokal
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm link --ignore-scripts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Atau jalankan installer otomatis (Windows PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/rajibjugi02-ctrl/Musicku/main/install.ps1 | iex
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Atau jalankan installer otomatis (Linux / macOS)
+```bash
+curl -fsSL https://raw.githubusercontent.com/rajibjugi02-ctrl/Musicku/main/install.sh | bash
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Penggunaan CLI
 
-To learn more about Next.js, take a look at the following resources:
+Setelah terpasang, perintah `opmusic` dapat dipanggil kapan saja dari terminal:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Buka Musicku (otomatis prioritas server lokal jika aktif, atau versi cloud)
+opmusic
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Buka Musicku versi cloud production langsung
+opmusic --cloud
 
-## Deploy on Vercel
+# Jalankan server dev lokal Next.js dan langsung buka di browser
+opmusic --dev
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Menampilkan versi CLI terpasang
+opmusic --version
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Menampilkan bantuan parameter
+opmusic --help
+```
+
+---
+
+## Clone & Setup Lokal
+
+Bagi yang ingin melakukan *clone* dan mengembangkan proyek ini di komputer lokal:
+
+### 1. Clone Repositori
+```bash
+git clone https://github.com/rajibjugi02-ctrl/Musicku.git
+cd Musicku/musicku-app
+```
+
+### 2. Konfigurasi Variabel Lingkungan (`.env`)
+Salin template `.env.example` menjadi `.env` lalu isi kredensial Anda sendiri:
+```bash
+cp .env.example .env
+```
+
+> **Catatan Keamanan:** File `.env` asli dan database rahasia sudah otomatis diabaikan oleh `.gitignore` sehingga kredensial pribadi tidak akan pernah bocor ke GitHub.
+
+### 3. Instal Dependensi & Generate Database
+```bash
+npm install
+npx prisma generate
+```
+
+### 4. Jalankan Server Pengembangan
+```bash
+npm run dev
+```
+Buka [http://localhost:3000](http://localhost:3000) di browser Anda atau cukup ketik `opmusic` di terminal.
+
+---
+
+## Fitur Utama
+
+- 🎵 **Full-Track Audio Streaming**: Pemutaran lagu penuh dengan fallback proxy audio berkecepatan tinggi.
+- 🎤 **Synced Live Lyrics**: Lirik lagu berjalan otomatis dan tersinkronisasi baris demi baris secara presisi.
+- 🔮 **iOS 26 Liquid Glass Aesthetic**: Tampilan antarmuka glassmorphism canggih dengan specular ambient lighting dan hardware acceleration 120fps.
+- 📱 **Mobile Single-Layer Navbar**: Scrubbing tab bar fisik iOS bebas teks double / berbayang.
+- 🔒 **Media Session Lock Screen**: Menampilkan judul lagu, artis, dan album art di layar kunci HP Android/iOS dan widget media Windows.
+- 📦 **Multi-Platform Ready**: PWA installable, Capacitor Android APK, dan Electron Windows Desktop executable.
+
+---
+
+<p align="center">
+  Dibuat dengan ❤️ oleh <b>Rajib Zahir</b>
+</p>

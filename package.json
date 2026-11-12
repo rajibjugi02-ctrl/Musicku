@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "main": "electron-main.js",
+  "bin": {
+    "opmusic": "./bin/opmusic.js"
+  },
+  "preferGlobal": true,
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -11,7 +15,8 @@
     "lint": "eslint",
     "desktop": "electron electron-main.js",
     "android:sync": "npx cap sync android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "link:cli": "npm link"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
