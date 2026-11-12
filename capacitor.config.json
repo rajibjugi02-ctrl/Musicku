@@ -1,0 +1,22 @@
+{
+  "appId": "com.musicku.app",
+  "appName": "Musicku",
+  "webDir": "out",
+  "server": {
+    "url": "https://musickus.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#070709",
+      "showSpinner": false
+    }
+  }
+}

@@ -2,12 +2,16 @@
   "name": "musicku-app",
   "version": "0.1.0",
   "private": true,
+  "main": "electron-main.js",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "desktop": "electron electron-main.js",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

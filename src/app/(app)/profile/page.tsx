@@ -141,7 +141,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 flex flex-col gap-8 max-w-5xl mx-auto select-none pb-36 md:pb-8 text-zinc-950 dark:text-zinc-100">
+    <div className="p-4 sm:p-6 md:p-8 flex flex-col gap-8 max-w-5xl mx-auto select-none pb-44 md:pb-8 text-zinc-950 dark:text-zinc-100">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (

@@ -380,6 +380,7 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
   }
 
   const cleanQuery = query.trim();
+  const qLower = cleanQuery.toLowerCase();
   const token = await getSpotifyClientToken();
 
   let spotifyTracks: SpotifyTrack[] = [];
@@ -416,28 +417,122 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
     }
   }
 
-  // Derive artist list from unique artist names in the merged tracks, merged with spotifyArtists
+  // 1. Process and rank Artists with Strict Relevance
   const artistMap = new Map<string, SpotifyArtist>();
-  spotifyArtists.forEach((a) => artistMap.set(a.name.toLowerCase(), a));
 
-  mergedTracks.forEach((t) => {
-    const artist = t.artists[0];
-    if (artist && !artistMap.has(artist.name.toLowerCase())) {
-      artistMap.set(artist.name.toLowerCase(), {
-        id: artist.id,
-        name: artist.name,
-        genres: ["Pop / Electronic / Remix"],
-        followers: { total: 1200000 },
-        popularity: 80,
-        images: t.album.images,
-        external_urls: t.external_urls,
-      });
+  // Include curated artist if name matches query
+  CURATED_ARTISTS.forEach((curated) => {
+    const cName = curated.name.toLowerCase();
+    if (cName === qLower || cName.startsWith(qLower) || cName.includes(qLower)) {
+      artistMap.set(cName, curated);
     }
   });
 
+  // Add Spotify artists
+  spotifyArtists.forEach((a) => {
+    const aName = a.name.toLowerCase().trim();
+    if (!artistMap.has(aName)) {
+      artistMap.set(aName, a);
+    }
+  });
+
+  // Calculate artist relevance score
+  const scoredArtists = Array.from(artistMap.values()).map((artist) => {
+    const aName = artist.name.toLowerCase().trim();
+    let score = 0;
+    if (aName === qLower) score += 1000;
+    else if (aName.startsWith(qLower)) score += 750 + (qLower.length / aName.length) * 100;
+    else if (aName.includes(qLower)) score += 400 + (qLower.length / aName.length) * 50;
+    else {
+      const tokens = qLower.split(/\s+/).filter(Boolean);
+      const allMatched = tokens.every((t: string) => aName.includes(t));
+      if (allMatched) score += 350;
+      else if (tokens.some((t: string) => aName.includes(t))) score += 150;
+    }
+
+    if (artist.popularity) score += artist.popularity * 0.2;
+    return { artist, score };
+  });
+
+  // Keep strictly relevant artists (score >= 150)
+  const sortedArtists = scoredArtists
+    .filter((sa) => sa.score >= 150)
+    .sort((a, b) => b.score - a.score)
+    .map((sa) => sa.artist)
+    .slice(0, 10);
+
+  const topMatchedArtistName = sortedArtists[0]?.name;
+
+  // 2. Process and rank Tracks with Strict Relevance
+  const scoredTracks = mergedTracks.map((track) => {
+    const title = track.name.toLowerCase().trim();
+    const primaryArtist = (track.artists[0]?.name || "").toLowerCase().trim();
+    const allArtists = track.artists.map((a) => a.name.toLowerCase().trim());
+    let score = 0;
+
+    // Direct exact or prefix match to primary artist
+    if (primaryArtist === qLower) score += 950;
+    else if (primaryArtist.startsWith(qLower)) score += 700;
+    else if (primaryArtist.includes(qLower)) score += 400;
+    else if (allArtists.some((a) => a === qLower)) score += 600;
+    else if (allArtists.some((a) => a.startsWith(qLower))) score += 450;
+    else if (allArtists.some((a) => a.includes(qLower))) score += 300;
+
+    // Top artist boost: if user searched an artist that matched, prioritize tracks sung by that artist
+    if (topMatchedArtistName) {
+      const topLower = topMatchedArtistName.toLowerCase().trim();
+      if (primaryArtist === topLower) score += 500;
+      else if (allArtists.includes(topLower)) score += 250;
+    }
+
+    // Direct title matching
+    if (title === qLower) score += 900;
+    else if (title.startsWith(qLower)) score += 650;
+    else if (title.includes(qLower)) score += 350;
+
+    // Word/token matching
+    const tokens = qLower.split(/\s+/).filter(Boolean);
+    let matchedTokenCount = 0;
+    for (const token of tokens) {
+      if (primaryArtist.includes(token) || title.includes(token)) {
+        matchedTokenCount++;
+        score += 80;
+      }
+    }
+
+    // Heavy penalty for karaoke, tribute, cover unless explicitly requested
+    const isSpecialtySearch = qLower.includes("karaoke") || qLower.includes("tribute") || qLower.includes("cover");
+    if (!isSpecialtySearch) {
+      if (
+        title.includes("karaoke") ||
+        primaryArtist.includes("karaoke") ||
+        title.includes("tribute") ||
+        title.includes("originally performed by") ||
+        primaryArtist.includes("tribute")
+      ) {
+        score -= 500;
+      }
+    }
+
+    // Popularity slight boost
+    const trackPopularity = (track as { popularity?: number }).popularity;
+    if (trackPopularity) {
+      score += Math.min(60, trackPopularity * 0.6);
+    }
+
+    return { track, score, hasTokenMatch: matchedTokenCount > 0 };
+  });
+
+  // Keep tracks with positive score that actually have at least 1 query token match
+  const filteredAndSortedTracks = scoredTracks
+    .filter((st) => st.score > 0 && st.hasTokenMatch)
+    .sort((a, b) => b.score - a.score)
+    .map((st) => st.track)
+    .slice(0, 50);
+
   return {
-    tracks: mergedTracks.slice(0, 50),
-    artists: Array.from(artistMap.values()).slice(0, 15),
+    tracks: filteredAndSortedTracks,
+    artists: sortedArtists,
   };
 }
 

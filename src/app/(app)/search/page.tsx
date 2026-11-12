@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Loader2, X, Compass, Flame } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import TrackCard from "@/components/ui/TrackCard";
@@ -27,19 +27,38 @@ export default function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const debouncedQ = useDebounce(query, 300);
 
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const trimmed = debouncedQ.trim();
+    if (!trimmed) {
       setTracks([]);
       setArtists([]);
       setIsLoading(false);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       return;
     }
 
+    // Cancel any previous in-flight search request to prevent stale results
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
-    try {
-      const res = await fetch(`/api/music?action=search&q=${encodeURIComponent(q)}`);
-      if (res.ok) {
-        const data = await res.json();
+
+    fetch(`/api/music?action=search&q=${encodeURIComponent(trimmed)}`, {
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Search failed");
+        return res.json();
+      })
+      .then((data) => {
         if (Array.isArray(data.tracks)) {
           setTracks(data.tracks);
           // Auto-prefetch top 3 search results for instant playback
@@ -49,17 +68,23 @@ export default function SearchPage() {
           });
         }
         setArtists(Array.isArray(data.artists) ? data.artists : []);
-      }
-    } catch {
-      // Fallback safe
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      })
+      .catch((err: any) => {
+        if (err?.name === "AbortError") {
+          return; // Aborted by newer keystroke
+        }
+        console.error("Search fetch error:", err);
+      })
+      .finally(() => {
+        if (abortControllerRef.current === controller) {
+          setIsLoading(false);
+        }
+      });
 
-  useEffect(() => {
-    doSearch(debouncedQ);
-  }, [debouncedQ, doSearch]);
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedQ]);
 
   const playerTracks = tracks.map(spotifyTrackToPlayerTrack);
 

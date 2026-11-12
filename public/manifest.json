@@ -1,0 +1,30 @@
+{
+  "name": "Musicku — Liquid Audio",
+  "short_name": "Musicku",
+  "description": "Apple iOS 26 Liquid Glassmorphism Music Player with synced live lyrics",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070709",
+  "theme_color": "#070709",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-icon.jpg",
+      "sizes": "180x180",
+      "type": "image/jpeg"
+    }
+  ],
+  "categories": ["music", "entertainment"]
+}

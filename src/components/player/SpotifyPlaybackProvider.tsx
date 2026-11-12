@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLyricsStore } from "@/store/useLyricsStore";
+import { useMediaSession } from "@/hooks/useMediaSession";
 
 declare global {
   interface Window {
@@ -53,6 +54,7 @@ interface SpotifyPlaybackState {
 }
 
 export function SpotifyPlaybackProvider({ children }: { children: React.ReactNode }) {
+  useMediaSession();
   const { data: session } = useSession();
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/register";

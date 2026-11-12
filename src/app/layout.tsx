@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "Musicku — Liquid Audio Streaming",
   description: "Apple iOS 26 Liquid Glassmorphism Music Player with synced live lyrics",
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/icon.png" },
@@ -29,6 +30,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+                window.addEventListener("load", function() {
+                  navigator.serviceWorker.register("/sw.js").catch(function(err) {});
+                });
+              }
+            `,
+          }}
+        />
         {/* Anti-FOUC Blocking Theme Script (Eliminates White Flash on Refresh) */}
         <script
           dangerouslySetInnerHTML={{

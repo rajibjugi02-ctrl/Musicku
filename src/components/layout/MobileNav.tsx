@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, Search, Library, Heart, User } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -34,10 +34,8 @@ export default function MobileNav() {
   const dragX = useMotionValue(activeIdx * TAB_WIDTH);
   const springX = useSpring(dragX, { stiffness: 450, damping: 32, mass: 0.6 });
 
-  // Dual-Layer Clip-Path Counter Offset: locks inner colored items in global coordinate space
-  const counterOffset = useTransform(springX, (x) => -x);
-
   const [isPressing, setIsPressing] = useState(false);
+  const [scrubbedIdx, setScrubbedIdx] = useState<number | null>(null);
   const isDraggingRef = useRef(false);
   const trackRef = useRef<HTMLDivElement>(null);
   const lastHapticIdx = useRef(activeIdx);
@@ -46,8 +44,11 @@ export default function MobileNav() {
   useEffect(() => {
     if (!isDraggingRef.current) {
       dragX.set(activeIdx * TAB_WIDTH);
+      setScrubbedIdx(null);
     }
   }, [activeIdx, dragX]);
+
+  const activeOrScrubbedIndex = scrubbedIdx !== null ? scrubbedIdx : activeIdx;
 
   const updatePositionFromPointer = (clientX: number) => {
     if (!trackRef.current) return;
@@ -57,8 +58,11 @@ export default function MobileNav() {
     const clamped = Math.max(0, Math.min(relativeX, maxOffset));
     dragX.set(clamped);
 
+    // Track active index under finger reactively
+    const currentIdx = Math.max(0, Math.min(Math.round(clamped / TAB_WIDTH), TABS.length - 1));
+    setScrubbedIdx(currentIdx);
+
     // Subtle Taptic Engine haptic vibration when scrubbing past tab boundaries
-    const currentIdx = Math.round(clamped / TAB_WIDTH);
     if (currentIdx !== lastHapticIdx.current) {
       lastHapticIdx.current = currentIdx;
       if (typeof window !== "undefined" && "vibrate" in navigator) {
@@ -95,6 +99,7 @@ export default function MobileNav() {
     const currentX = dragX.get();
     const finalIdx = Math.max(0, Math.min(Math.round(currentX / TAB_WIDTH), TABS.length - 1));
     dragX.set(finalIdx * TAB_WIDTH);
+    setScrubbedIdx(null);
 
     // Navigate only on pointer release
     const targetTab = TABS[finalIdx];
@@ -107,7 +112,7 @@ export default function MobileNav() {
     <>
       {/* ─────────────────────────────────────────────────────────────
           1. BOTTOM ADAPTIVE AMBIENT VIGNETTE SHIELD
-          Replaces dirty black gradient with clean frost matching theme background
+          Vignette frost matching theme background
          ───────────────────────────────────────────────────────────── */}
       <div
         aria-hidden="true"
@@ -135,37 +140,7 @@ export default function MobileNav() {
           {/* Inner 320px Track Container */}
           <div className="relative w-[320px] h-[50px] mx-auto overflow-hidden rounded-full">
             {/* ───────────────────────────────────────────────────────────
-                LAYER 1: BASE INACTIVE TAB LAYER (Neutral Zinc)
-               ─────────────────────────────────────────────────────────── */}
-            <div className="absolute inset-0 flex items-center z-0 pointer-events-none">
-              {TABS.map(({ href, label, icon: Icon }) => {
-                const isProfile = href === "/profile";
-                return (
-                  <div
-                    key={href}
-                    style={{ width: TAB_WIDTH }}
-                    className="flex flex-col items-center justify-center gap-0.5 text-zinc-500 dark:text-zinc-400"
-                  >
-                    {isProfile && isRealAvatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatarUrl}
-                        alt="Profile"
-                        className="w-4 h-4 rounded-full object-cover opacity-75 grayscale-[20%]"
-                      />
-                    ) : (
-                      <Icon className="w-4 h-4 stroke-[1.8]" />
-                    )}
-                    <span className="text-[10px] font-medium tracking-tight leading-none">
-                      {label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* ───────────────────────────────────────────────────────────
-                LAYER 2: CONVEX LIQUID LENS PILL (Spring Physics + Hardware Layer)
+                LAYER 1: CONVEX LIQUID LENS PILL (z-10, Empty Liquid Glass)
                ─────────────────────────────────────────────────────────── */}
             <motion.div
               style={{
@@ -176,7 +151,7 @@ export default function MobileNav() {
               }}
               animate={{
                 scaleX: isPressing ? 1.08 : 1,
-                scaleY: isPressing ? 1.12 : 1,
+                scaleY: isPressing ? 1.1 : 1,
               }}
               transition={{
                 scaleX: { type: "spring", stiffness: 500, damping: 25 },
@@ -192,56 +167,56 @@ export default function MobileNav() {
             />
 
             {/* ───────────────────────────────────────────────────────────
-                LAYER 3: DUAL-LAYER CLIP-PATH MASK (iOS Electric Blue #0A84FF)
-                Only reveals the Electric Blue items directly inside the lens
+                LAYER 2: SINGLE-LAYER NAVIGATION BUTTONS (z-20)
+                Rendered HANYA SATU KALI — 100% bebas ghosting / teks double
                ─────────────────────────────────────────────────────────── */}
-            <motion.div
-              style={{
-                x: springX,
-                width: TAB_WIDTH,
-                WebkitClipPath: "inset(0 0 0 0 round 9999px)",
-                clipPath: "inset(0 0 0 0 round 9999px)",
-                transform: "translateZ(0)",
-                willChange: "transform",
-              }}
-              className="absolute top-0 bottom-0 overflow-hidden rounded-full pointer-events-none z-20"
-            >
-              {/* Counter-Offset Container keeping active blue items locked in visual space */}
-              <motion.div
-                style={{
-                  x: counterOffset,
-                  width: TOTAL_TRACK_WIDTH,
-                  transform: "translateZ(0)",
-                  willChange: "transform",
-                }}
-                className="flex items-center h-full pointer-events-none"
-              >
-                {TABS.map(({ href, label, icon: Icon }) => {
-                  const isProfile = href === "/profile";
-                  return (
-                    <div
-                      key={href}
-                      style={{ width: TAB_WIDTH }}
-                      className="flex flex-col items-center justify-center gap-0.5 text-[#0A84FF] filter drop-shadow-[0_0_10px_rgba(10,132,255,0.4)]"
-                    >
-                      {isProfile && isRealAvatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={avatarUrl}
-                          alt="Profile"
-                          className="w-4 h-4 rounded-full object-cover ring-2 ring-[#0A84FF] shadow-[0_0_10px_rgba(10,132,255,0.5)] scale-105"
-                        />
-                      ) : (
-                        <Icon className="w-4 h-4 stroke-[2.4]" />
+            <div className="absolute inset-0 flex items-center z-20 pointer-events-none">
+              {TABS.map(({ href, label, icon: Icon }, idx) => {
+                const isActive = idx === activeOrScrubbedIndex;
+                const isProfile = href === "/profile";
+                return (
+                  <div
+                    key={href}
+                    style={{ width: TAB_WIDTH }}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-0.5 transition-colors duration-150 select-none",
+                      isActive
+                        ? "text-[#0A84FF] filter drop-shadow-[0_0_8px_rgba(10,132,255,0.4)]"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    )}
+                  >
+                    {isProfile && isRealAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt="Profile"
+                        className={cn(
+                          "w-4 h-4 rounded-full object-cover transition-all duration-150",
+                          isActive
+                            ? "ring-2 ring-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.5)] scale-105 opacity-100"
+                            : "opacity-75 grayscale-[20%]"
+                        )}
+                      />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          "w-4 h-4 transition-transform duration-150",
+                          isActive ? "stroke-[2.4] scale-105" : "stroke-[1.8]"
+                        )}
+                      />
+                    )}
+                    <span
+                      className={cn(
+                        "text-[10px] tracking-tight leading-none transition-all duration-150",
+                        isActive ? "font-bold text-[#0A84FF]" : "font-medium"
                       )}
-                      <span className="text-[10px] font-bold tracking-tight leading-none text-[#0A84FF]">
-                        {label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </motion.div>
-            </motion.div>
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
