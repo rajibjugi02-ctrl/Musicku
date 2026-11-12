@@ -374,6 +374,29 @@ export async function fetchRecommendations(seedTrackId?: string, seedArtistName?
   return fetchITunes(term, 12);
 }
 
+async function fetchDeezerArtists(query: string): Promise<SpotifyArtist[]> {
+  try {
+    const res = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}&limit=8`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items = data.data || [];
+    return items.map((a: { id: number; name: string; picture_xl?: string; picture_big?: string; picture_medium?: string; nb_fan?: number }) => ({
+      id: `deezer-${a.id}`,
+      name: a.name,
+      images: [{ url: a.picture_xl || a.picture_big || a.picture_medium || "", width: 1000, height: 1000 }],
+      genres: ["Music Artist"],
+      followers: { total: a.nb_fan || 0 },
+      popularity: Math.min(100, Math.round(Math.log10(Math.max(1, a.nb_fan || 1)) * 18)),
+      external_urls: { spotify: `https://open.spotify.com/search/${encodeURIComponent(a.name)}` },
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchUnifiedSearch(query: string): Promise<{ tracks: SpotifyTrack[]; artists: SpotifyArtist[] }> {
   if (!query || !query.trim()) {
     return { tracks: [], artists: [] };
@@ -398,12 +421,15 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
         spotifyArtists = data.artists?.items || [];
       }
     } catch {
-      // Fall through to combine with iTunes
+      // Fall through to combine with Deezer & iTunes
     }
   }
 
-  // Complement or fallback via iTunes search (fetching 40 tracks for deep catalog coverage)
-  const itunesTracks = await fetchITunes(cleanQuery, 40);
+  // Fetch iTunes tracks and Deezer artists in parallel for comprehensive zero-empty search
+  const [itunesTracks, deezerArtists] = await Promise.all([
+    fetchITunes(cleanQuery, 40),
+    fetchDeezerArtists(cleanQuery),
+  ]);
 
   // Merge tracks deduplicating by normalized title + artist
   const seenTracks = new Set<string>();
@@ -420,11 +446,11 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
   // 1. Process and rank Artists with Strict Relevance
   const artistMap = new Map<string, SpotifyArtist>();
 
-  // Include curated artist if name matches query
-  CURATED_ARTISTS.forEach((curated) => {
-    const cName = curated.name.toLowerCase();
-    if (cName === qLower || cName.startsWith(qLower) || cName.includes(qLower)) {
-      artistMap.set(cName, curated);
+  // Add matching Deezer artists (high accuracy global database)
+  deezerArtists.forEach((a) => {
+    const aName = a.name.toLowerCase().trim();
+    if (!artistMap.has(aName)) {
+      artistMap.set(aName, a);
     }
   });
 
@@ -436,32 +462,84 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
     }
   });
 
-  // Calculate artist relevance score
+  // Include curated artist only if name genuinely matches query
+  CURATED_ARTISTS.forEach((curated) => {
+    const cName = curated.name.toLowerCase().trim();
+    if (cName === qLower || cName.startsWith(qLower) || qLower.startsWith(cName)) {
+      artistMap.set(cName, curated);
+    }
+  });
+
+  // Also synthesize artists found in matching tracks if not yet present
+  for (const track of mergedTracks) {
+    const pArtist = track.artists[0]?.name?.trim();
+    if (!pArtist) continue;
+    const pLower = pArtist.toLowerCase();
+    if ((pLower === qLower || pLower.startsWith(qLower)) && !artistMap.has(pLower)) {
+      artistMap.set(pLower, {
+        id: `track-artist-${track.artists[0].id || pLower.replace(/\s+/g, "-")}`,
+        name: pArtist,
+        images: track.album?.images || [],
+        genres: ["Music Artist"],
+        followers: { total: 0 },
+        popularity: 85,
+        external_urls: { spotify: `https://open.spotify.com/search/${encodeURIComponent(pArtist)}` },
+      });
+    }
+  }
+
+  // Calculate artist relevance score with strict matching
   const scoredArtists = Array.from(artistMap.values()).map((artist) => {
     const aName = artist.name.toLowerCase().trim();
     let score = 0;
-    if (aName === qLower) score += 1000;
-    else if (aName.startsWith(qLower)) score += 750 + (qLower.length / aName.length) * 100;
-    else if (aName.includes(qLower)) score += 400 + (qLower.length / aName.length) * 50;
-    else {
-      const tokens = qLower.split(/\s+/).filter(Boolean);
-      const allMatched = tokens.every((t: string) => aName.includes(t));
-      if (allMatched) score += 350;
-      else if (tokens.some((t: string) => aName.includes(t))) score += 150;
+
+    if (aName === qLower) {
+      score += 5000;
+    } else if (aName.startsWith(qLower)) {
+      score += 3500 + Math.round((qLower.length / aName.length) * 500);
+    } else {
+      const queryTokens = qLower.split(/\s+/).filter(Boolean);
+      const artistTokens = aName.split(/\s+/).filter(Boolean);
+      const allQueryTokensInArtist = queryTokens.length > 0 && queryTokens.every((token) => aName.includes(token));
+      const anyWordStarts = artistTokens.some((at) => at.startsWith(qLower) || queryTokens.some((qt) => at.startsWith(qt)));
+
+      if (allQueryTokensInArtist) {
+        score += 2000;
+      } else if (anyWordStarts && qLower.length >= 3) {
+        score += 1500;
+      } else if (aName.includes(qLower) && qLower.length >= 3) {
+        score += 800;
+      }
     }
 
-    if (artist.popularity) score += artist.popularity * 0.2;
+    // Filter out tribute and piano cover artists unless specifically searched
+    const isSpecialtyArtistSearch = qLower.includes("tribute") || qLower.includes("cover") || qLower.includes("karaoke");
+    if (!isSpecialtyArtistSearch) {
+      if (
+        aName.includes("tribute") ||
+        aName.includes("covers") ||
+        aName.includes("cover") ||
+        aName.includes("piano") ||
+        aName.includes("karaoke") ||
+        aName.includes("original by")
+      ) {
+        score -= 3000;
+      }
+    }
+
+    if (artist.popularity) score += artist.popularity * 0.5;
     return { artist, score };
   });
 
-  // Keep strictly relevant artists (score >= 150)
+  // Keep strictly relevant artists (score >= 800 rejects random unrelated artists)
   const sortedArtists = scoredArtists
-    .filter((sa) => sa.score >= 150)
+    .filter((sa) => sa.score >= 800)
     .sort((a, b) => b.score - a.score)
     .map((sa) => sa.artist)
-    .slice(0, 10);
+    .slice(0, 8);
 
   const topMatchedArtistName = sortedArtists[0]?.name;
+  const topLower = topMatchedArtistName ? topMatchedArtistName.toLowerCase().trim() : "";
 
   // 2. Process and rank Tracks with Strict Relevance
   const scoredTracks = mergedTracks.map((track) => {
@@ -470,25 +548,29 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
     const allArtists = track.artists.map((a) => a.name.toLowerCase().trim());
     let score = 0;
 
-    // Direct exact or prefix match to primary artist
-    if (primaryArtist === qLower) score += 950;
-    else if (primaryArtist.startsWith(qLower)) score += 700;
-    else if (primaryArtist.includes(qLower)) score += 400;
-    else if (allArtists.some((a) => a === qLower)) score += 600;
-    else if (allArtists.some((a) => a.startsWith(qLower))) score += 450;
-    else if (allArtists.some((a) => a.includes(qLower))) score += 300;
-
-    // Top artist boost: if user searched an artist that matched, prioritize tracks sung by that artist
-    if (topMatchedArtistName) {
-      const topLower = topMatchedArtistName.toLowerCase().trim();
-      if (primaryArtist === topLower) score += 500;
-      else if (allArtists.includes(topLower)) score += 250;
+    // Direct exact or prefix match to primary artist (Massive boost when searching artist)
+    if (primaryArtist === qLower) {
+      score += 5000;
+    } else if (topLower && primaryArtist === topLower) {
+      score += 4500;
+    } else if (primaryArtist.startsWith(qLower)) {
+      score += 3000;
+    } else if (topLower && primaryArtist.startsWith(topLower)) {
+      score += 2500;
+    } else if (allArtists.some((a) => a === qLower || (topLower && a === topLower))) {
+      score += 2000;
+    } else if (primaryArtist.includes(qLower)) {
+      score += 1500;
     }
 
     // Direct title matching
-    if (title === qLower) score += 900;
-    else if (title.startsWith(qLower)) score += 650;
-    else if (title.includes(qLower)) score += 350;
+    if (title === qLower) {
+      score += 4000;
+    } else if (title.startsWith(qLower)) {
+      score += 2500;
+    } else if (title.includes(qLower)) {
+      score += 1200;
+    }
 
     // Word/token matching
     const tokens = qLower.split(/\s+/).filter(Boolean);
@@ -496,9 +578,16 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
     for (const token of tokens) {
       if (primaryArtist.includes(token) || title.includes(token)) {
         matchedTokenCount++;
-        score += 80;
+        score += 150;
       }
     }
+
+    const isDirectMatch =
+      primaryArtist === qLower ||
+      (topLower && primaryArtist === topLower) ||
+      primaryArtist.startsWith(qLower) ||
+      title === qLower ||
+      title.startsWith(qLower);
 
     // Heavy penalty for karaoke, tribute, cover unless explicitly requested
     const isSpecialtySearch = qLower.includes("karaoke") || qLower.includes("tribute") || qLower.includes("cover");
@@ -510,22 +599,22 @@ export async function fetchUnifiedSearch(query: string): Promise<{ tracks: Spoti
         title.includes("originally performed by") ||
         primaryArtist.includes("tribute")
       ) {
-        score -= 500;
+        score -= 2000;
       }
     }
 
-    // Popularity slight boost
+    // Popularity boost
     const trackPopularity = (track as { popularity?: number }).popularity;
     if (trackPopularity) {
-      score += Math.min(60, trackPopularity * 0.6);
+      score += Math.min(100, trackPopularity * 1.0);
     }
 
-    return { track, score, hasTokenMatch: matchedTokenCount > 0 };
+    return { track, score, isRelevant: isDirectMatch || matchedTokenCount > 0 };
   });
 
-  // Keep tracks with positive score that actually have at least 1 query token match
+  // Keep tracks with positive score that actually have relevance to the query
   const filteredAndSortedTracks = scoredTracks
-    .filter((st) => st.score > 0 && st.hasTokenMatch)
+    .filter((st) => st.score > 0 && st.isRelevant)
     .sort((a, b) => b.score - a.score)
     .map((st) => st.track)
     .slice(0, 50);

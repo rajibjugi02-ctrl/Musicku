@@ -13,7 +13,8 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
-    "desktop": "electron electron-main.js",
+    "desktop": "npx electron electron-main.js",
+    "android:init": "npx cap add android",
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android",
     "link:cli": "npm link"

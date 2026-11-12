@@ -179,9 +179,9 @@ export default function MobileNav() {
                     key={href}
                     style={{ width: TAB_WIDTH }}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-0.5 transition-colors duration-150 select-none",
+                      "flex flex-col items-center justify-center gap-0.5 select-none transition-colors duration-150 antialiased",
                       isActive
-                        ? "text-[#0A84FF] filter drop-shadow-[0_0_8px_rgba(10,132,255,0.4)]"
+                        ? "text-[#0A84FF]"
                         : "text-zinc-500 dark:text-zinc-400"
                     )}
                   >
@@ -191,9 +191,9 @@ export default function MobileNav() {
                         src={avatarUrl}
                         alt="Profile"
                         className={cn(
-                          "w-4 h-4 rounded-full object-cover transition-all duration-150",
+                          "w-4 h-4 rounded-full object-cover transition-transform duration-150",
                           isActive
-                            ? "ring-2 ring-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.5)] scale-105 opacity-100"
+                            ? "ring-2 ring-[#0A84FF] scale-105 opacity-100"
                             : "opacity-75 grayscale-[20%]"
                         )}
                       />
@@ -201,7 +201,7 @@ export default function MobileNav() {
                       <Icon
                         className={cn(
                           "w-4 h-4 transition-transform duration-150",
-                          isActive ? "stroke-[2.4] scale-105" : "stroke-[1.8]"
+                          isActive ? "stroke-[2.2] scale-105" : "stroke-[1.8]"
                         )}
                       />
                     )}
