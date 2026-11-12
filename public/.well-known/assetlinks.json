@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.musickus.twa",
+        "sha256_cert_fingerprints": ["67:15:D3:9D:E4:0D:B6:DC:C3:D1:5E:28:1B:B2:11:DB:18:72:7E:31:A5:A3:94:12:DE:09:EF:EE:85:0F:08:A7"]
+      }
+    }]
