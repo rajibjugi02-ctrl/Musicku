@@ -7,7 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
 import {
   Home, Search, Library, Heart, Settings,
-  Moon, Sun, LogOut, Disc3, User,
+  Moon, Sun, LogOut, User,
 } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -38,8 +38,8 @@ export default function LeftSidebar() {
     <div className="flex flex-col h-full p-4 gap-2">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-2 py-2 mb-3">
-        <div className="w-9 h-9 rounded-2xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 flex items-center justify-center shadow-lg shadow-black/5 dark:shadow-black/20">
-          <Disc3 className="w-5 h-5 text-zinc-900 dark:text-white animate-[spin_10s_linear_infinite]" />
+        <div className="w-9 h-9 rounded-2xl overflow-hidden border border-black/10 dark:border-white/20 flex items-center justify-center shadow-lg shadow-cyan-500/10 bg-black">
+          <img src="/logo.png" alt="Musicku" className="w-full h-full object-cover" />
         </div>
         <div>
           <span className="font-semibold text-sm tracking-wider text-zinc-900 dark:text-white">Musicku</span>

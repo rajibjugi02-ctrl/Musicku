@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Loader2, Disc3, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 
 interface AuthFormProps {
@@ -117,8 +117,8 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
     <div className="w-full max-w-sm relative z-10 select-none">
       {/* Brand Header */}
       <div className="flex items-center justify-center gap-2.5 mb-7">
-        <div className="w-10 h-10 rounded-2xl glass-pill flex items-center justify-center shadow-lg border border-white/20">
-          <Disc3 className="w-5 h-5 text-white animate-[spin_8s_linear_infinite]" />
+        <div className="w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg border border-white/20 bg-black shadow-cyan-500/10">
+          <img src="/logo.png" alt="Musicku" className="w-full h-full object-cover" />
         </div>
         <div>
           <span className="text-lg font-bold tracking-tight text-white">Musicku</span>

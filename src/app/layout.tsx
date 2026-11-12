@@ -8,6 +8,16 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "Musicku — Liquid Audio Streaming",
   description: "Apple iOS 26 Liquid Glassmorphism Music Player with synced live lyrics",
+  icons: {
+    icon: [
+      { url: "/icon.png" },
+      { url: "/icon.jpg" },
+      { url: "/favicon.ico" },
+    ],
+    apple: [
+      { url: "/apple-icon.jpg" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
