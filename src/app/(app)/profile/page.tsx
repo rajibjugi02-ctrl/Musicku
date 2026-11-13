@@ -17,6 +17,7 @@ import {
   ArrowRight,
   FolderPlus,
   User,
+  ChevronRight,
 } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
@@ -294,6 +295,47 @@ export default function ProfilePage() {
           </motion.div>
         </Link>
       </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          2.5 MUSICKU REPLAY BANNER CARD (Monthly & Yearly Raport)
+         ───────────────────────────────────────────────────────────── */}
+      <Link href="/replay">
+        <motion.div
+          whileHover={{ y: -3, scale: 1.008 }}
+          whileTap={{ scale: 0.985 }}
+          className="relative rounded-[28px] overflow-hidden p-5 sm:p-6 glass-panel bg-gradient-to-r from-indigo-950/75 via-purple-950/65 to-pink-950/55 dark:from-indigo-950/80 dark:via-purple-950/70 dark:to-pink-950/60 border border-indigo-500/30 hover:border-indigo-500/50 shadow-xl transition-all cursor-pointer group select-none text-white"
+        >
+          {/* Ambient Liquid Specular Glow */}
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-indigo-500/30 to-pink-500/30 blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700" />
+          <div className="absolute -bottom-12 -left-12 w-44 h-44 rounded-full bg-purple-500/25 blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform flex-shrink-0">
+                <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-mono font-bold tracking-wider text-indigo-200 uppercase mb-1 border border-white/15">
+                  <span>MUSICKU REPLAY</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight truncate">
+                  Monthly & Yearly Raport
+                </h3>
+                <p className="text-xs text-white/70 mt-0.5 line-clamp-1">
+                  Lihat kilas balik lagu teratas, total menit mendengar, & listening persona kamu
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+              <span className="text-xs font-bold text-white group-hover:underline">Buka Raport</span>
+              <div className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </Link>
 
       {/* ─────────────────────────────────────────────────────────────
           3. USER'S FAVORITE TRACKS PREVIEW

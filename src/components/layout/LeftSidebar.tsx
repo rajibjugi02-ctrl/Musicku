@@ -7,7 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
 import {
   Home, Search, Library, Heart, Settings,
-  Moon, Sun, LogOut, User,
+  Moon, Sun, LogOut, User, Sparkles,
 } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { useProfileStore } from "@/store/useProfileStore";
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "Library", icon: Library },
   { href: "/liked-artists", label: "Liked Artists", icon: Heart },
+  { href: "/replay", label: "Replay", icon: Sparkles },
   { href: "/profile", label: "Profile", icon: User },
 ];
 

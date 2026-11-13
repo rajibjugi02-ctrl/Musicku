@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import PlayHistory from "@/components/home/PlayHistory";
 import SmartRecommendations from "@/components/home/SmartRecommendations";
 import DiscoverTracks from "@/components/home/DiscoverTracks";
@@ -22,6 +23,23 @@ export default function HomePage() {
             Stream high-fidelity tracks with real-time timestamped lyrics and liquid glass aesthetics.
           </p>
         </div>
+
+        {/* Musicku Replay Highlight Pill */}
+        <Link href="/replay" className="relative z-10 flex-shrink-0">
+          <div className="group flex items-center gap-3.5 px-4 py-3 rounded-2xl glass-card bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-pink-500/15 hover:from-indigo-500/25 hover:to-pink-500/25 border border-indigo-500/25 dark:border-indigo-400/30 shadow-md transition-all cursor-pointer">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white shadow-sm group-hover:scale-108 transition-transform">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-300 block leading-tight">
+                Raport Musik Kamu
+              </span>
+              <p className="text-xs font-bold text-zinc-900 dark:text-white mt-0.5 group-hover:underline">
+                Musicku Replay 2026 →
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* 5 Last Played History (FIFO) */}

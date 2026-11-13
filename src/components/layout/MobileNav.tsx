@@ -28,7 +28,11 @@ export default function MobileNav() {
     0,
     TABS.findIndex((t) => {
       if (t.href === "/profile") {
-        return pathname.startsWith("/profile") || pathname.startsWith("/settings");
+        return (
+          pathname.startsWith("/profile") ||
+          pathname.startsWith("/settings") ||
+          pathname.startsWith("/replay")
+        );
       }
       return t.href === pathname;
     })
