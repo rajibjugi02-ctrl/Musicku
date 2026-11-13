@@ -14,9 +14,19 @@ import AmbientBackground from "./AmbientBackground";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isSettingsPage = pathname.startsWith("/settings");
+  const isReplayPage = pathname.startsWith("/replay");
   const isLeftOpen = useUIStore((s) => s.isLeftSidebarOpen);
   const isRightOpen = useUIStore((s) => s.isRightSidebarOpen);
   const isDesktopDetailOpen = usePlayerStore((s) => s.isDesktopDetailOpen);
+
+  if (isReplayPage) {
+    return (
+      <div className="h-screen h-[100dvh] w-screen overflow-hidden relative select-none bg-[#07080f] text-white">
+        <AmbientBackground />
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen h-[100dvh] w-screen p-2.5 sm:p-3.5 gap-2.5 sm:gap-3.5 flex flex-col overflow-hidden relative text-zinc-900 dark:text-zinc-100 select-none">
