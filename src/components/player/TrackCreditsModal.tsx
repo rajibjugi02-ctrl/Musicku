@@ -65,7 +65,7 @@ export default function TrackCreditsModal({ track, isOpen, onClose }: TrackCredi
 
               <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/5">
                 <div className="flex items-center gap-2 text-white/60">
-                  <Disc className="w-4 h-4 text-purple-400" />
+                  <Disc className="w-4 h-4 text-white/70" />
                   <span>Album</span>
                 </div>
                 <span className="font-bold text-white truncate max-w-[170px]">

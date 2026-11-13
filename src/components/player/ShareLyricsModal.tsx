@@ -288,7 +288,7 @@ export default function ShareLyricsModal({ track, isOpen, onClose }: ShareLyrics
           {/* Body */}
           <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
             {/* Live Lyric Card Preview */}
-            <div className="rounded-3xl p-5 bg-gradient-to-br from-indigo-950/70 via-purple-950/50 to-zinc-950 border border-white/20 shadow-xl relative overflow-hidden">
+            <div className="rounded-3xl p-5 bg-gradient-to-br from-zinc-900/90 via-zinc-950 to-black border border-white/15 shadow-xl relative overflow-hidden">
               <div className="flex items-center gap-3 pb-3 border-b border-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -371,7 +371,7 @@ export default function ShareLyricsModal({ track, isOpen, onClose }: ShareLyrics
             <button
               onClick={handleShareCard}
               disabled={isGenerating}
-              className="flex-1 py-2.5 px-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-white/10 transition-all cursor-pointer disabled:opacity-50"
             >
               {isGenerating ? (
                 <Sparkles className="w-3.5 h-3.5 animate-spin" />

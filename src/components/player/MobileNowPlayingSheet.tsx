@@ -332,8 +332,18 @@ export default function MobileNowPlayingSheet() {
                   </div>
                 </div>
 
-                {/* Live Synced Lyrics Stream */}
-                <div className="flex-1 overflow-y-auto scrollbar-none py-4 space-y-5 relative">
+                {/* Live Synced Lyrics Stream (Apple Music iOS 26 Typography) */}
+                <div
+                  className="apple-lyrics-viewport flex-1 overflow-y-auto scrollbar-none py-4 space-y-7 relative select-none outline-none border-0 ring-0 px-2"
+                  style={{
+                    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 86%, transparent 100%)",
+                    maskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 86%, transparent 100%)",
+                    WebkitTapHighlightColor: "transparent",
+                    WebkitBackfaceVisibility: "hidden",
+                    backfaceVisibility: "hidden",
+                  }}
+                >
+                  <div className="h-28 flex-shrink-0" />
                   {lines.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-white/40 text-xs gap-2">
                       <Disc3 className="w-6 h-6 animate-spin text-white/30" />
@@ -342,23 +352,76 @@ export default function MobileNowPlayingSheet() {
                   ) : (
                     lines.map((line, i) => {
                       const isActive = i === activeLine;
+                      const distance = activeLine >= 0 ? Math.abs(i - activeLine) : 99;
+
+                      // Stepped blur and opacity following Apple Music iOS guidelines
+                      let blurFilter = "blur(0px)";
+                      let opacityVal = 1;
+                      let scaleClass = "scale-100";
+                      let typographyClass = "text-2xl sm:text-3xl font-extrabold text-white leading-tight";
+
+                      if (isActive) {
+                        blurFilter = "blur(0px)";
+                        opacityVal = 1;
+                        scaleClass = "scale-100";
+                        typographyClass = "text-2xl sm:text-3xl font-black text-white leading-tight";
+                      } else if (distance === 1) {
+                        blurFilter = "blur(0.8px)";
+                        opacityVal = 0.45;
+                        scaleClass = "scale-[0.98]";
+                        typographyClass = "text-lg sm:text-xl font-bold text-white/60 leading-normal";
+                      } else if (distance === 2) {
+                        blurFilter = "blur(1.6px)";
+                        opacityVal = 0.30;
+                        scaleClass = "scale-[0.96]";
+                        typographyClass = "text-lg sm:text-xl font-bold text-white/40 leading-normal";
+                      } else {
+                        blurFilter = "blur(2.2px)";
+                        opacityVal = 0.18;
+                        scaleClass = "scale-[0.94]";
+                        typographyClass = "text-lg sm:text-xl font-bold text-white/30 leading-normal";
+                      }
+
                       return (
                         <div
                           key={`${i}-${line.time}`}
                           ref={isActive ? activeLineRef : undefined}
                           onClick={() => handleLyricsLineClick(line.time)}
                           className={cn(
-                            "cursor-pointer transition-all duration-300 py-1 origin-left",
-                            isActive
-                              ? "text-2xl sm:text-3xl font-extrabold text-white leading-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] scale-100"
-                              : "text-lg sm:text-xl font-bold text-white/30 blur-[0.8px] hover:text-white/70 hover:blur-0 scale-95"
+                            "apple-lyric-line cursor-pointer transition-all duration-300 py-1.5 origin-left select-none outline-none border-0 ring-0 focus:outline-none bg-transparent hover:opacity-85 hover:filter-none",
+                            scaleClass
                           )}
+                          style={{
+                            WebkitBackfaceVisibility: "hidden",
+                            backfaceVisibility: "hidden",
+                            WebkitTransform: "translateZ(0)",
+                            transform: "translateZ(0)",
+                            WebkitTapHighlightColor: "transparent",
+                            outline: "none",
+                            border: "none",
+                            boxShadow: "none",
+                            opacity: opacityVal,
+                            filter: blurFilter,
+                          }}
                         >
-                          {line.text}
+                          <span
+                            className={cn(
+                              "inline-block transition-all duration-300 select-none outline-none border-0 ring-0",
+                              typographyClass
+                            )}
+                            style={{
+                              textShadow: isActive
+                                ? "0 0 20px rgba(255,255,255,0.45), 0 0 42px rgba(255,255,255,0.18)"
+                                : "none",
+                            }}
+                          >
+                            {line.text}
+                          </span>
                         </div>
                       );
                     })
                   )}
+                  <div className="h-44 flex-shrink-0" />
                 </div>
               </div>
             )}

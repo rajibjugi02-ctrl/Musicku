@@ -179,3 +179,53 @@ html:not(.dark) .glass-pill {
     contain: paint;
   }
 }
+
+/* ==========================================================================
+   Apple Music Live Synced Lyrics - iOS 26 Hardware Rendering Protections
+   Eliminates GPU sub-pixel hairline artifacts, selection rings, & box clipping
+   ========================================================================== */
+.apple-lyrics-viewport {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 1) 12%,
+    rgba(0, 0, 0, 1) 86%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 1) 12%,
+    rgba(0, 0, 0, 1) 86%,
+    transparent 100%
+  );
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+  border: none !important;
+}
+
+.apple-lyrics-viewport *,
+.apple-lyric-line,
+.apple-lyric-line * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.apple-lyric-line {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.apple-lyric-line::selection {
+  background: transparent;
+}

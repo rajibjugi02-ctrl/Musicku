@@ -14,6 +14,19 @@ interface LrclibItem {
 const lyricsCache = new Map<string, LrcLine[]>();
 
 /**
+ * Sanitizes lyric text to remove extraneous trailing/leading pipes, cursor artifacts,
+ * or divider symbols that sometimes appear in crowd-sourced LRC tracks.
+ */
+export function cleanLrcText(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .replace(/^[\s|_\-—–\u2500-\u257F]+/g, "")
+    .replace(/[\s|_\-—–\u2500-\u257F]+$/g, "")
+    .replace(/\s*\|+\s*$/g, "")
+    .trim();
+}
+
+/**
  * Parses raw LRC string ([mm:ss.xx] or [mm:ss.xxx]) into structured LrcLine array
  * with high-precision millisecond parsing.
  */
@@ -37,7 +50,7 @@ export function parseLrc(raw: string): LrcLine[] {
     }
 
     const time = minutes * 60 + seconds + millis / 1000;
-    const text = match[4].trim();
+    const text = cleanLrcText(match[4]);
 
     if (text && !text.startsWith("[") && !text.endsWith("]")) {
       lines.push({ time, text });
@@ -53,7 +66,7 @@ export function parseLrc(raw: string): LrcLine[] {
 export function generateProportionalTimestamps(plainLyrics: string, durationSec: number): LrcLine[] {
   const cleanLines = plainLyrics
     .split("\n")
-    .map((l) => l.trim())
+    .map((l) => cleanLrcText(l))
     .filter((l) => l.length > 0 && !l.startsWith("[") && !l.endsWith("]"));
 
   if (cleanLines.length === 0) return [];
