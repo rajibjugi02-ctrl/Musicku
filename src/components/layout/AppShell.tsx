@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useUIStore } from "@/store/useUIStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import LeftSidebar from "./LeftSidebar";
@@ -54,14 +54,41 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Right Sidebar Island (Queue & Lyrics) - Conditional: hidden on /settings */}
         {!isSettingsPage && (
-          <aside
-            className={`
-              hidden lg:flex flex-col flex-shrink-0 glass-panel rounded-[28px] overflow-hidden transition-all duration-300
-              ${isRightOpen ? "lg:w-72 xl:w-80" : "lg:w-0 lg:opacity-0 lg:pointer-events-none"}
-            `}
-          >
-            <RightSidebar />
-          </aside>
+          <>
+            {/* Desktop Docked Sidebar (lg: screens >= 1024px) */}
+            <aside
+              className={`
+                hidden lg:flex flex-col flex-shrink-0 glass-panel rounded-[28px] overflow-hidden transition-all duration-300
+                ${isRightOpen ? "lg:w-72 xl:w-80" : "lg:w-0 lg:opacity-0 lg:pointer-events-none"}
+              `}
+            >
+              <RightSidebar />
+            </aside>
+
+            {/* Tablet Slide-Over Glass Drawer (md: 768px to 1023px) */}
+            <AnimatePresence>
+              {isRightOpen && (
+                <div className="hidden md:block lg:hidden">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => useUIStore.getState().setRightSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 cursor-pointer"
+                  />
+                  <motion.aside
+                    initial={{ x: "100%", opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 32 }}
+                    className="fixed top-3.5 bottom-24 right-3.5 w-80 sm:w-96 z-50 glass-panel rounded-[28px] shadow-2xl border border-black/15 dark:border-white/20 overflow-hidden flex flex-col bg-white/95 dark:bg-zinc-950/90 backdrop-blur-3xl"
+                  >
+                    <RightSidebar onClose={() => useUIStore.getState().setRightSidebarOpen(false)} />
+                  </motion.aside>
+                </div>
+              )}
+            </AnimatePresence>
+          </>
         )}
       </div>
 

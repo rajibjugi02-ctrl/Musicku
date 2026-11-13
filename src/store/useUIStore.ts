@@ -20,6 +20,7 @@ interface UIState {
   setTheme: (t: Theme) => void;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+  setRightSidebarOpen: (open: boolean) => void;
   openMobilePlayer: () => void;
   closeMobilePlayer: () => void;
   toggleMobilePlayer: () => void;
@@ -46,6 +47,7 @@ export const useUIStore = create<UIState>()(
         set((s) => ({ isLeftSidebarOpen: !s.isLeftSidebarOpen })),
       toggleRightSidebar: () =>
         set((s) => ({ isRightSidebarOpen: !s.isRightSidebarOpen })),
+      setRightSidebarOpen: (open: boolean) => set({ isRightSidebarOpen: open }),
       openMobilePlayer: () => set({ isMobilePlayerOpen: true }),
       closeMobilePlayer: () => set({ isMobilePlayerOpen: false }),
       toggleMobilePlayer: () =>

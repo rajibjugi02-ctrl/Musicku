@@ -19,6 +19,8 @@ import {
   Sparkles,
   Heart,
   Plus,
+  Mic2,
+  ListMusic,
 } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLyricsStore } from "@/store/useLyricsStore";
@@ -56,7 +58,14 @@ export default function PlayerBar() {
   } = usePlayerStore();
 
   const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
-  const { openMobilePlayer } = useUIStore();
+  const {
+    openMobilePlayer,
+    isRightSidebarOpen,
+    toggleRightSidebar,
+    setRightSidebarOpen,
+    rightPanel,
+    setRightPanel,
+  } = useUIStore();
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const router = useRouter();
 
@@ -265,23 +274,68 @@ export default function PlayerBar() {
           </div>
         </div>
 
-        {/* Volume Controller (Responsive sizing) */}
-        <div className="hidden md:flex items-center gap-2 sm:gap-2.5 w-36 md:w-44 lg:w-64 justify-end flex-shrink-0">
+        {/* Utility Controls & Volume (Tablet & Desktop) */}
+        <div className="hidden md:flex items-center gap-1.5 sm:gap-2 lg:gap-3 w-52 md:w-60 lg:w-72 justify-end flex-shrink-0">
+          {/* Lyrics Toggle Button */}
           <button
-            onClick={() => setVolume(volume === 0 ? 0.8 : 0)}
-            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+            onClick={() => {
+              if (isRightSidebarOpen && rightPanel === "lyrics") {
+                toggleRightSidebar();
+              } else {
+                setRightPanel("lyrics");
+                if (!isRightSidebarOpen) setRightSidebarOpen(true);
+              }
+            }}
+            className={cn(
+              "p-2 rounded-xl transition-all cursor-pointer relative",
+              isRightSidebarOpen && rightPanel === "lyrics"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+            )}
+            title="Real-time Synced Lyrics"
           >
-            {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <Mic2 className="w-4 h-4" />
           </button>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-16 md:w-20 lg:w-28 h-1 bg-black/10 dark:bg-white/15 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-white"
-          />
+
+          {/* Up Next Queue Toggle Button */}
+          <button
+            onClick={() => {
+              if (isRightSidebarOpen && rightPanel === "queue") {
+                toggleRightSidebar();
+              } else {
+                setRightPanel("queue");
+                if (!isRightSidebarOpen) setRightSidebarOpen(true);
+              }
+            }}
+            className={cn(
+              "p-2 rounded-xl transition-all cursor-pointer relative",
+              isRightSidebarOpen && rightPanel === "queue"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+            )}
+            title="Up Next Queue"
+          >
+            <ListMusic className="w-4 h-4" />
+          </button>
+
+          {/* Volume Controller */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => setVolume(volume === 0 ? 0.8 : 0)}
+              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+            >
+              {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-16 md:w-20 lg:w-24 h-1 bg-black/10 dark:bg-white/15 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-white"
+            />
+          </div>
         </div>
       </div>
 
