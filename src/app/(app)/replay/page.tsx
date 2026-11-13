@@ -263,6 +263,13 @@ export default function ReplayPage() {
   const currentYearInt = now.getFullYear();
   const currentMonthInt = now.getMonth() + 1;
 
+  // Force current year only (remove legacy 2025)
+  useEffect(() => {
+    if (selectedYear !== String(currentYearInt)) {
+      setSelectedYear(String(currentYearInt));
+    }
+  }, [selectedYear, currentYearInt, setSelectedYear]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3200);
@@ -497,7 +504,7 @@ export default function ReplayPage() {
                   );
                 })
               ) : (
-                [currentYearInt, currentYearInt - 1].map((year) => {
+                [currentYearInt].map((year) => {
                   const yearStr = String(year);
                   const isSelected = selectedYear === yearStr;
                   return (
@@ -685,7 +692,7 @@ export default function ReplayPage() {
                   );
                 })
               ) : (
-                [currentYearInt, currentYearInt - 1].map((year) => {
+                [currentYearInt].map((year) => {
                   const yearStr = String(year);
                   const isSelected = selectedYear === yearStr;
                   return (
@@ -1117,7 +1124,7 @@ export default function ReplayPage() {
                 );
               })
             ) : (
-              [currentYearInt, currentYearInt - 1].map((year) => {
+              [currentYearInt].map((year) => {
                 const yearStr = String(year);
                 const isSelected = selectedYear === yearStr;
                 return (

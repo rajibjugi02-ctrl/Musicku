@@ -349,17 +349,28 @@ export const useReplayStore = create<ReplayState>()(
       };
     },
     {
-      name: "musicku-replay-v2",
-      version: 2,
-      // Purge any legacy seed dummy records from user's storage
+      name: "musicku-replay-v3",
+      version: 3,
+      // Purge any legacy seed dummy records and force year to current year (remove 2025)
       migrate: (persistedState: any) => {
-        if (persistedState?.records && Array.isArray(persistedState.records)) {
-          persistedState.records = persistedState.records
-            .filter((r: RawPlayRecord) => r && r.trackId && !r.trackId.startsWith("seed"))
-            .map((r: RawPlayRecord) => ({
-              ...r,
-              albumArt: resolveArtwork(r.name, r.albumArt),
-            }));
+        if (persistedState) {
+          const currentYear = String(new Date().getFullYear());
+          persistedState.selectedYear = currentYear;
+
+          if (persistedState.records && Array.isArray(persistedState.records)) {
+            persistedState.records = persistedState.records
+              .filter(
+                (r: RawPlayRecord) =>
+                  r &&
+                  r.trackId &&
+                  !r.trackId.startsWith("seed") &&
+                  r.year !== "2025"
+              )
+              .map((r: RawPlayRecord) => ({
+                ...r,
+                albumArt: resolveArtwork(r.name, r.albumArt),
+              }));
+          }
         }
         return persistedState;
       },
