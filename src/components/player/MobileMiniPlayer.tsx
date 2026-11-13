@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Play, Pause, SkipForward, Heart, Loader2 } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
@@ -22,6 +23,7 @@ export default function MobileMiniPlayer() {
 
   const { isTrackLiked, toggleLikeTrack } = useLibraryStore();
   const { openMobilePlayer } = useUIStore();
+  const router = useRouter();
 
   if (!currentTrack) return null;
 
@@ -78,9 +80,18 @@ export default function MobileMiniPlayer() {
                   E
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate mt-0.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  usePlayerStore.getState().setDesktopDetailOpen(false);
+                  useUIStore.getState().closeMobilePlayer();
+                  router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
+                }}
+                className="text-[11px] text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-white truncate mt-0.5 text-left block hover:underline cursor-pointer"
+              >
                 {currentTrack.artistName}
-              </p>
+              </button>
             </div>
           </div>
 

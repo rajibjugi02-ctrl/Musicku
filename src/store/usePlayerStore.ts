@@ -25,6 +25,7 @@ interface PlayerState {
   audioQuality: "normal" | "lossless" | "hi-res";
   sleepTimerEnd: number | null; // Date.now() ms, null = off, -1 = end of track
   sleepTimerOption: "off" | "15" | "30" | "45" | "60" | "end-of-track";
+  isDesktopDetailOpen: boolean; // slide-up desktop track detail sheet
   streamCache: Record<string, CachedStream>; // client-side prefetch cache
 
   // Actions
@@ -43,6 +44,7 @@ interface PlayerState {
   setBuffering: (buffering: boolean) => void;
   setVolume: (v: number) => void;
   setAudioQuality: (q: "normal" | "lossless" | "hi-res") => void;
+  setDesktopDetailOpen: (open: boolean) => void;
   prefetchTrackStream: (track: PlayerTrack) => Promise<void>;
   prefetchTrack: (track: PlayerTrack) => Promise<void>;
   generateSmartRadioQueue: (track: PlayerTrack) => Promise<void>;
@@ -75,6 +77,7 @@ export const usePlayerStore = create<PlayerState>()(
       audioQuality: "lossless",
       sleepTimerEnd: null,
       sleepTimerOption: "off",
+      isDesktopDetailOpen: false,
       streamCache: {},
 
       play(track, queue) {
@@ -363,6 +366,10 @@ export const usePlayerStore = create<PlayerState>()(
 
       setAudioQuality(audioQuality) {
         set({ audioQuality });
+      },
+
+      setDesktopDetailOpen(isDesktopDetailOpen) {
+        set({ isDesktopDetailOpen });
       },
 
       setSleepTimer(option) {

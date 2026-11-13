@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Heart, Users, ExternalLink, Loader2, Play, Sparkles } from "lucide-react";
+import { Heart, Users, ExternalLink, Loader2, Play, Sparkles, ChevronLeft } from "lucide-react";
 import TrackCard from "@/components/ui/TrackCard";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
@@ -25,6 +25,7 @@ function formatFollowers(n: number) {
 
 export default function ArtistPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [data, setData] = useState<ArtistPageData | null>(null);
   const { toggleLikeArtist, isArtistLiked } = useLibraryStore();
   const { play } = usePlayerStore();
@@ -57,7 +58,19 @@ export default function ArtistPage() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col relative">
+      {/* Top Glass Back Navigation Button */}
+      <div className="absolute top-4 left-4 z-20">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-xl border border-white/15 text-white text-xs font-semibold shadow-lg transition-all cursor-pointer hover:scale-105 active:scale-95"
+          title="Kembali"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Kembali</span>
+        </button>
+      </div>
+
       {/* Artist Glass Hero Header */}
       <div className="relative h-72 sm:h-80 overflow-hidden">
         {heroImg && (

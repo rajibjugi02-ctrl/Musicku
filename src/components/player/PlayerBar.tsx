@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Play,
@@ -57,6 +58,7 @@ export default function PlayerBar() {
   const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
   const { openMobilePlayer } = useUIStore();
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
+  const router = useRouter();
 
   const progressRef = useRef<HTMLDivElement>(null);
   const isLiked = currentTrack ? isTrackLiked(currentTrack.id) : false;
@@ -118,9 +120,15 @@ export default function PlayerBar() {
       <div className="h-20 px-4 sm:px-6 flex items-center justify-between gap-4 select-none">
         {/* Current Playing Track Info */}
         <div
-          onClick={openMobilePlayer}
+          onClick={() => {
+            if (typeof window !== "undefined" && window.innerWidth >= 768) {
+              usePlayerStore.getState().setDesktopDetailOpen(true);
+            } else {
+              openMobilePlayer();
+            }
+          }}
           className="flex items-center gap-3.5 w-64 min-w-0 flex-shrink-0 cursor-pointer group"
-          title="Open Full-Screen Player"
+          title="Open Track Detail"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -132,9 +140,18 @@ export default function PlayerBar() {
             <p className="text-xs font-semibold text-zinc-900 dark:text-white truncate leading-tight group-hover:underline">
               {currentTrack.name}
             </p>
-            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate mt-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                usePlayerStore.getState().setDesktopDetailOpen(false);
+                useUIStore.getState().closeMobilePlayer();
+                router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
+              }}
+              className="text-[11px] text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-white truncate mt-0.5 text-left block hover:underline cursor-pointer"
+            >
               {currentTrack.artistName}
-            </p>
+            </button>
             <div className="flex items-center gap-1.5 mt-1">
               {isResolvingStream || isBuffering ? (
                 <span className="inline-flex items-center gap-1 text-[9px] text-amber-600 dark:text-amber-300 font-mono">

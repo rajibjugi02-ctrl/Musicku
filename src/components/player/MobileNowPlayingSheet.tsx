@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
@@ -73,6 +74,7 @@ export default function MobileNowPlayingSheet() {
   const { isMobilePlayerOpen, closeMobilePlayer } = useUIStore();
   const { lines, activeLine } = useLyricsStore();
   const { isTrackLiked, toggleLikeTrack } = useLibraryStore();
+  const router = useRouter();
 
   const [mode, setMode] = useState<"artwork" | "lyrics" | "queue">("artwork");
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -166,44 +168,55 @@ export default function MobileNowPlayingSheet() {
           {/* Top Drag Indicator */}
           <div
             onClick={closeMobilePlayer}
-            className="relative z-10 w-full pt-3 pb-1 flex justify-center cursor-pointer active:opacity-60"
+            className="relative z-30 w-full pt-3 pb-1 flex justify-center cursor-pointer active:opacity-60"
           >
-            <div className="w-10 h-1 bg-white/35 rounded-full" />
+            <div className="w-10 h-1 bg-white/40 rounded-full" />
           </div>
 
           {/* Main Content Area based on Mode */}
-          <div className="relative z-10 flex-1 flex flex-col px-6 min-h-0 overflow-hidden">
+          <div className={cn(
+            "relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden",
+            mode === "artwork" ? "px-0" : "px-6"
+          )}>
             {/* ─────────────────────────────────────────────────────────────
-                MODE 1: ARTWORK VIEW (Default)
+                MODE 1: ARTWORK VIEW (Full-Bleed Apple Music Hero)
                ───────────────────────────────────────────────────────────── */}
             {mode === "artwork" && (
-              <div className="flex-1 flex flex-col justify-evenly py-2 min-h-0">
-                {/* Large Apple Music Album Artwork */}
-                <div className="flex items-center justify-center py-2 flex-1 min-h-0">
+              <div className="flex-1 flex flex-col justify-between min-h-0 relative pb-2">
+                {/* Full-Bleed Hero Artwork with Breathing Zoom Animation */}
+                <div className="relative w-full h-[50dvh] sm:h-[56dvh] overflow-hidden flex-shrink-0">
                   <motion.div
                     animate={{
-                      scale: isPlaying ? 1 : 0.88,
+                      scale: isPlaying ? [1, 1.04, 1] : 0.96,
                     }}
-                    transition={{ type: "spring", stiffness: 240, damping: 20 }}
-                    className="relative w-[78vw] max-w-[320px] aspect-square rounded-[24px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.65)] border border-white/15"
+                    transition={{
+                      scale: isPlaying
+                        ? { repeat: Infinity, duration: 14, ease: "easeInOut" }
+                        : { type: "spring", stiffness: 220, damping: 22 },
+                    }}
+                    className="relative w-full h-full"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={currentTrack.albumArt}
                       alt={currentTrack.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center select-none"
                     />
                   </motion.div>
+
+                  {/* Multi-Stop Apple Music iOS Seamless Bottom Gradient Mask */}
+                  <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0a0c16] via-[#0a0c16]/80 via-45% to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
                 </div>
 
                 {/* Track Info Row + Favorite & Actions */}
-                <div className="flex items-center justify-between gap-3 pt-2 pb-1">
+                <div className="px-6 flex items-center justify-between gap-3 pt-2 pb-2 relative z-20">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight truncate">
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight truncate">
                         {currentTrack.name}
                       </h1>
-                      <span className="flex-shrink-0 text-[10px] font-bold bg-white/20 text-white/90 px-1 py-0.5 rounded leading-none">
+                      <span className="flex-shrink-0 text-[10px] font-bold bg-white/20 text-white/90 px-1.5 py-0.5 rounded leading-none">
                         E
                       </span>
                       {audioQuality === "hi-res" ? (
@@ -216,9 +229,16 @@ export default function MobileNowPlayingSheet() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="text-sm font-medium text-white/60 truncate mt-0.5">
+                    <button
+                      onClick={() => {
+                        closeMobilePlayer();
+                        usePlayerStore.getState().setDesktopDetailOpen(false);
+                        router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
+                      }}
+                      className="text-sm font-semibold text-white/70 hover:text-white truncate mt-1 text-left block hover:underline cursor-pointer transition-colors"
+                    >
                       {currentTrack.artistName}
-                    </p>
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -267,9 +287,16 @@ export default function MobileNowPlayingSheet() {
                           E
                         </span>
                       </div>
-                      <p className="text-xs text-white/60 truncate mt-0.5">
+                      <button
+                        onClick={() => {
+                          closeMobilePlayer();
+                          usePlayerStore.getState().setDesktopDetailOpen(false);
+                          router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
+                        }}
+                        className="text-xs text-white/60 hover:text-white truncate mt-0.5 text-left block hover:underline cursor-pointer transition-colors"
+                      >
                         {currentTrack.artistName}
-                      </p>
+                      </button>
                     </div>
                   </div>
 
@@ -348,9 +375,16 @@ export default function MobileNowPlayingSheet() {
                           E
                         </span>
                       </div>
-                      <p className="text-xs text-white/60 truncate mt-0.5">
+                      <button
+                        onClick={() => {
+                          closeMobilePlayer();
+                          usePlayerStore.getState().setDesktopDetailOpen(false);
+                          router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
+                        }}
+                        className="text-xs text-white/60 hover:text-white truncate mt-0.5 text-left block hover:underline cursor-pointer transition-colors"
+                      >
                         {currentTrack.artistName}
-                      </p>
+                      </button>
                     </div>
                   </div>
 
@@ -480,9 +514,18 @@ export default function MobileNowPlayingSheet() {
                                   E
                                 </span>
                               </div>
-                              <p className="text-[11px] text-white/50 truncate mt-0.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  closeMobilePlayer();
+                                  usePlayerStore.getState().setDesktopDetailOpen(false);
+                                  router.push(`/artist/${encodeURIComponent(t.artistName)}`);
+                                }}
+                                className="text-[11px] text-white/50 hover:text-white truncate mt-0.5 text-left block hover:underline cursor-pointer transition-colors"
+                              >
                                 {t.artistName}
-                              </p>
+                              </button>
                             </div>
                           </div>
 

@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { X, GripVertical, Music2, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { useUIStore } from "@/store/useUIStore";
 
 export default function QueuePanel() {
+  const router = useRouter();
   const { queue, currentTrack, removeFromQueue, play, prefetchTrackStream, shuffleQueue } = usePlayerStore();
 
   const currentIdx = useMemo(
@@ -25,7 +28,18 @@ export default function QueuePanel() {
             <img src={currentTrack.albumArt} alt="" className="w-10 h-10 rounded-md object-cover" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-zinc-100 truncate">{currentTrack.name}</p>
-              <p className="text-xs text-zinc-500 truncate">{currentTrack.artistName}</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  usePlayerStore.getState().setDesktopDetailOpen(false);
+                  useUIStore.getState().closeMobilePlayer();
+                  router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
+                }}
+                className="text-xs text-zinc-500 hover:text-white truncate block text-left hover:underline cursor-pointer"
+              >
+                {currentTrack.artistName}
+              </button>
             </div>
             {/* Animated bars indicator */}
             <div className="flex items-end gap-0.5 h-4 flex-shrink-0">
@@ -91,7 +105,18 @@ export default function QueuePanel() {
                   <img src={track.albumArt} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-zinc-200 truncate">{track.name}</p>
-                    <p className="text-[10px] text-zinc-600 truncate">{track.artistName}</p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        usePlayerStore.getState().setDesktopDetailOpen(false);
+                        useUIStore.getState().closeMobilePlayer();
+                        router.push(`/artist/${encodeURIComponent(track.artistName)}`);
+                      }}
+                      className="text-[10px] text-zinc-500 hover:text-white truncate block text-left hover:underline cursor-pointer"
+                    >
+                      {track.artistName}
+                    </button>
                   </div>
                   <button
                     onClick={(e) => {

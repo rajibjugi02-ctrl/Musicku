@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Play, Pause, Heart, Plus } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
+import { useUIStore } from "@/store/useUIStore";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
 import type { PlayerTrack } from "@/types/music";
 import { cn } from "@/lib/utils";
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export default function TrackCard({ track, queue, className }: Props) {
+  const router = useRouter();
   const { play, currentTrack, isPlaying, prefetchTrackStream } = usePlayerStore();
   const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
 
@@ -125,9 +128,18 @@ export default function TrackCard({ track, queue, className }: Props) {
                   E
                 </span>
               )}
-              <p className="text-[13px] text-zinc-500 dark:text-zinc-400 truncate leading-tight">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  usePlayerStore.getState().setDesktopDetailOpen(false);
+                  useUIStore.getState().closeMobilePlayer();
+                  router.push(`/artist/${encodeURIComponent(track.artistName)}`);
+                }}
+                className="text-[13px] text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-white truncate leading-tight hover:underline cursor-pointer text-left"
+              >
                 {track.artistName}
-              </p>
+              </button>
             </div>
           </div>
         </motion.div>

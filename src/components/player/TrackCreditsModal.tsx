@@ -113,3 +113,4 @@ export default function TrackCreditsModal({ track, isOpen, onClose }: TrackCredi
     </AnimatePresence>
   );
 }
+

@@ -404,3 +404,4 @@ export default function ShareLyricsModal({ track, isOpen, onClose }: ShareLyrics
     </AnimatePresence>
   );
 }
+
