@@ -90,6 +90,13 @@ export default function MobileNowPlayingSheet() {
   const pct = Math.min(100, Math.max(0, (position / trackDuration) * 100));
   const isFavorited = currentTrack ? isTrackLiked(currentTrack.id) : false;
 
+  const displayArt = currentTrack?.albumArt
+    ? currentTrack.albumArt
+        .replace(/100x100/g, "1000x1000")
+        .replace(/300x300/g, "1000x1000")
+        .replace(/w=\d+/g, "w=1080")
+    : "";
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2200);
@@ -141,15 +148,17 @@ export default function MobileNowPlayingSheet() {
           }}
           className="md:hidden fixed inset-0 z-[100] flex flex-col justify-between overflow-hidden select-none bg-[#0a0c16] text-white"
         >
-          {/* Dynamic Mesh Blurred Album Art Background */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* ─────────────────────────────────────────────────────────────
+              LAYER 1: LIVING AMBIENT BACKDROP
+             ───────────────────────────────────────────────────────────── */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={currentTrack.albumArt}
+              src={displayArt}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover blur-[95px] opacity-35 scale-150 transform transition-transform duration-700"
+              className="absolute inset-0 w-full h-full object-cover blur-[85px] saturate-[190%] opacity-65 scale-150 transform-gpu transition-all duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#141a2e]/80 via-[#0e1222]/90 to-[#080a14]" />
+            <div className="absolute inset-0 bg-black/45" />
           </div>
 
           {/* Toast Notification */}
@@ -165,55 +174,57 @@ export default function MobileNowPlayingSheet() {
             </motion.div>
           )}
 
-          {/* Top Drag Indicator */}
+          {/* Floating Top Drag Handle (Absolute over Top-0 Artwork) */}
           <div
             onClick={closeMobilePlayer}
-            className="relative z-30 w-full pt-3 pb-1 flex justify-center cursor-pointer active:opacity-60"
+            className="absolute top-3 inset-x-0 z-30 flex justify-center cursor-pointer active:opacity-60 py-1"
           >
-            <div className="w-10 h-1 bg-white/40 rounded-full" />
+            <div className="w-10 h-1 bg-white/45 backdrop-blur-md rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.5)]" />
           </div>
 
           {/* Main Content Area based on Mode */}
           <div className={cn(
             "relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden",
-            mode === "artwork" ? "px-0" : "px-6"
+            mode === "artwork" ? "px-0 pt-0" : "px-6 pt-9"
           )}>
             {/* ─────────────────────────────────────────────────────────────
-                MODE 1: ARTWORK VIEW (Full-Bleed Apple Music Hero)
+                MODE 1: ARTWORK VIEW (3-Layer Apple Music Liquid Artwork)
                ───────────────────────────────────────────────────────────── */}
             {mode === "artwork" && (
-              <div className="flex-1 flex flex-col justify-between min-h-0 relative pb-2">
-                {/* Full-Bleed Hero Artwork with Breathing Zoom Animation */}
-                <div className="relative w-full h-[50dvh] sm:h-[56dvh] overflow-hidden flex-shrink-0">
+              <div className="flex-1 flex flex-col justify-between min-h-0 relative pb-1">
+                {/* Layer 2: Edge-to-Edge Alpha Masked Cover (Top-0, Multi-Stop Mask) */}
+                <div className="relative w-full h-[62dvh] sm:h-[64dvh] top-0 inset-x-0 z-10 overflow-hidden flex-shrink-0">
                   <motion.div
                     animate={{
-                      scale: isPlaying ? [1, 1.04, 1] : 0.96,
+                      scale: isPlaying ? [1, 1.035, 1] : 0.96,
                     }}
                     transition={{
                       scale: isPlaying
                         ? { repeat: Infinity, duration: 14, ease: "easeInOut" }
                         : { type: "spring", stiffness: 220, damping: 22 },
                     }}
-                    className="relative w-full h-full"
+                    style={{
+                      WebkitMaskImage:
+                        "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 52%, rgba(0,0,0,0.65) 72%, rgba(0,0,0,0.2) 88%, rgba(0,0,0,0) 100%)",
+                      maskImage:
+                        "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 52%, rgba(0,0,0,0.65) 72%, rgba(0,0,0,0.2) 88%, rgba(0,0,0,0) 100%)",
+                    }}
+                    className="w-full h-full"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={currentTrack.albumArt}
+                      src={displayArt}
                       alt={currentTrack.name}
-                      className="w-full h-full object-cover object-center select-none"
+                      className="w-full h-full object-cover object-top select-none"
                     />
                   </motion.div>
-
-                  {/* Multi-Stop Apple Music iOS Seamless Bottom Gradient Mask */}
-                  <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0a0c16] via-[#0a0c16]/80 via-45% to-transparent pointer-events-none" />
-                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
                 </div>
 
-                {/* Track Info Row + Favorite & Actions */}
-                <div className="px-6 flex items-center justify-between gap-3 pt-2 pb-2 relative z-20">
+                {/* Layer 3: Seamless Overlapping Controls (-mt-16 eliminates dead space) */}
+                <div className="-mt-16 sm:-mt-20 relative z-20 px-6 flex items-center justify-between gap-3 pb-2 flex-shrink-0">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight truncate">
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight truncate drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
                         {currentTrack.name}
                       </h1>
                       <span className="flex-shrink-0 text-[10px] font-bold bg-white/20 text-white/90 px-1.5 py-0.5 rounded leading-none">
@@ -235,7 +246,7 @@ export default function MobileNowPlayingSheet() {
                         usePlayerStore.getState().setDesktopDetailOpen(false);
                         router.push(`/artist/${encodeURIComponent(currentTrack.artistName)}`);
                       }}
-                      className="text-sm font-semibold text-white/70 hover:text-white truncate mt-1 text-left block hover:underline cursor-pointer transition-colors"
+                      className="text-sm font-semibold text-white/70 hover:text-white truncate mt-1 text-left block hover:underline cursor-pointer transition-colors drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]"
                     >
                       {currentTrack.artistName}
                     </button>
@@ -244,7 +255,7 @@ export default function MobileNowPlayingSheet() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => toggleLikeTrack(currentTrack)}
-                      className="p-2 rounded-full hover:bg-white/10 active:scale-90 transition-transform cursor-pointer"
+                      className="p-2 rounded-full hover:bg-white/10 active:scale-90 transition-transform cursor-pointer drop-shadow-md"
                     >
                       <Star
                         className={cn(
@@ -255,7 +266,7 @@ export default function MobileNowPlayingSheet() {
                     </button>
                     <button
                       onClick={() => setIsActionMenuOpen(true)}
-                      className="p-2 rounded-full hover:bg-white/10 active:scale-90 transition-transform cursor-pointer"
+                      className="p-2 rounded-full hover:bg-white/10 active:scale-90 transition-transform cursor-pointer drop-shadow-md"
                     >
                       <MoreHorizontal className="w-5 h-5 text-white/80" />
                     </button>
@@ -274,7 +285,7 @@ export default function MobileNowPlayingSheet() {
                   <div className="flex items-center gap-3 min-w-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={currentTrack.albumArt}
+                      src={displayArt}
                       alt={currentTrack.name}
                       className="w-11 h-11 rounded-xl object-cover flex-shrink-0 shadow-md border border-white/15"
                     />
@@ -362,7 +373,7 @@ export default function MobileNowPlayingSheet() {
                   <div className="flex items-center gap-3 min-w-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={currentTrack.albumArt}
+                      src={displayArt}
                       alt={currentTrack.name}
                       className="w-11 h-11 rounded-xl object-cover flex-shrink-0 shadow-md border border-white/15"
                     />
