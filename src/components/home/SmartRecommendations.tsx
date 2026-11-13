@@ -40,7 +40,7 @@ export default function SmartRecommendations() {
           {currentTrack ? `Because you listened to ${currentTrack.artistName}` : "Smart Recommendations"}
         </h2>
       </div>
-      <div className="flex gap-4 overflow-x-auto pt-2 pb-4 px-1 -mx-1 no-scrollbar">
+      <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
         {playerTracks.map((t) => (
           <TrackCard key={t.id} track={t} queue={playerTracks} />
         ))}

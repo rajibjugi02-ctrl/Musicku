@@ -141,7 +141,7 @@ export default function MobileNav() {
       {/* ─────────────────────────────────────────────────────────────
           2. FLOATING iOS 26 LIQUID GLASS SCRUBBING TAB BAR (h-[62px])
          ───────────────────────────────────────────────────────────── */}
-      <div className="md:hidden fixed bottom-4 inset-x-0 flex justify-center z-50 pointer-events-none select-none">
+      <div className="md:hidden fixed bottom-4 inset-x-0 flex justify-center z-50 pointer-events-none select-none px-3">
         <div
           ref={trackRef}
           onPointerDown={handlePointerDown}
@@ -152,6 +152,7 @@ export default function MobileNav() {
             WebkitBackdropFilter: "blur(28px) saturate(190%)",
             backdropFilter: "blur(28px) saturate(190%)",
             width: TOTAL_TRACK_WIDTH + 12, // 332px
+            maxWidth: "calc(100vw - 24px)",
             transform: "translateZ(0)",
           }}
           className="pointer-events-auto touch-none relative h-[62px] flex items-center p-1.5 rounded-full bg-white/85 dark:bg-zinc-950/75 border border-black/10 dark:border-white/[0.16] shadow-[0_16px_40px_rgba(0,0,0,0.14)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.65)] cursor-pointer select-none"

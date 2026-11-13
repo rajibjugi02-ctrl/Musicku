@@ -46,7 +46,7 @@ export default function PlayHistory() {
         <Clock className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
         <h2 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">Recently Played (5 Tracks)</h2>
       </div>
-      <div className="flex gap-4 overflow-x-auto pt-2 pb-4 px-1 -mx-1 no-scrollbar">
+      <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
         {tracks.map((t) => (
           <TrackCard key={t.id} track={t} queue={tracks} />
         ))}

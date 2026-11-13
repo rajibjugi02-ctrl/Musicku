@@ -148,7 +148,7 @@ export default function ArtistPage() {
               Top Tracks ({playerTracks.length})
             </h2>
           </div>
-          <div className="flex gap-3.5 overflow-x-auto pt-3 pb-6 px-2 -mx-2 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-white/10">
+          <div className="flex gap-3.5 overflow-x-auto pt-3 pb-6 no-scrollbar">
             {playerTracks.map((t) => (
               <TrackCard key={t.id} track={t} queue={playerTracks} />
             ))}

@@ -117,8 +117,8 @@ export default function PlayerBar() {
 
   return (
     <>
-      <div className="h-20 px-4 sm:px-6 flex items-center justify-between gap-4 select-none">
-        {/* Current Playing Track Info */}
+      <div className="h-20 px-3 sm:px-5 lg:px-6 flex items-center justify-between gap-3 sm:gap-4 select-none">
+        {/* Current Playing Track Info (Responsive width) */}
         <div
           onClick={() => {
             if (typeof window !== "undefined" && window.innerWidth >= 768) {
@@ -127,14 +127,14 @@ export default function PlayerBar() {
               openMobilePlayer();
             }
           }}
-          className="flex items-center gap-3.5 w-64 min-w-0 flex-shrink-0 cursor-pointer group"
+          className="flex items-center gap-2.5 sm:gap-3.5 w-44 md:w-52 lg:w-64 min-w-0 flex-shrink-0 cursor-pointer group"
           title="Open Track Detail"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={currentTrack.albumArt}
             alt={currentTrack.albumName}
-            className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-lg border border-black/10 dark:border-white/20 transition-transform group-hover:scale-105"
+            className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl object-cover flex-shrink-0 shadow-lg border border-black/10 dark:border-white/20 transition-transform group-hover:scale-105"
           />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-zinc-900 dark:text-white truncate leading-tight group-hover:underline">
@@ -152,7 +152,7 @@ export default function PlayerBar() {
             >
               {currentTrack.artistName}
             </button>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="hidden sm:flex items-center gap-1.5 mt-1">
               {isResolvingStream || isBuffering ? (
                 <span className="inline-flex items-center gap-1 text-[9px] text-amber-600 dark:text-amber-300 font-mono">
                   <Loader2 className="w-2.5 h-2.5 animate-spin" />
@@ -168,7 +168,7 @@ export default function PlayerBar() {
           </div>
 
           {/* Favorite & Library Action Icons */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => toggleLikeTrack(currentTrack)}
               title={isLiked ? "Favorited" : "Favorite"}
@@ -190,8 +190,8 @@ export default function PlayerBar() {
         </div>
 
         {/* Playback Controls & Progress */}
-        <div className="flex-1 flex flex-col items-center gap-1.5 max-w-xl mx-auto">
-          <div className="flex items-center gap-4 sm:gap-6">
+        <div className="flex-1 flex flex-col items-center gap-1.5 max-w-xl mx-auto min-w-0 px-2">
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
             <button
               onClick={toggleShuffle}
               className={cn(
@@ -243,8 +243,8 @@ export default function PlayerBar() {
           </div>
 
           {/* Scrub Bar */}
-          <div className="flex items-center gap-2.5 w-full">
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono w-9 text-right">
+          <div className="flex items-center gap-2 sm:gap-2.5 w-full">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono w-8 sm:w-9 text-right">
               {formatMs(position)}
             </span>
             <div
@@ -259,14 +259,14 @@ export default function PlayerBar() {
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-zinc-900 dark:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md" />
               </div>
             </div>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono w-9">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono w-8 sm:w-9">
               {formatMs(trackDuration)}
             </span>
           </div>
         </div>
 
-        {/* Volume Controller */}
-        <div className="hidden md:flex items-center gap-2.5 w-64 justify-end flex-shrink-0">
+        {/* Volume Controller (Responsive sizing) */}
+        <div className="hidden md:flex items-center gap-2 sm:gap-2.5 w-36 md:w-44 lg:w-64 justify-end flex-shrink-0">
           <button
             onClick={() => setVolume(volume === 0 ? 0.8 : 0)}
             className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
@@ -280,7 +280,7 @@ export default function PlayerBar() {
             step={0.01}
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-24 h-1.5 bg-black/15 dark:bg-white/15 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-white"
+            className="w-16 md:w-20 lg:w-28 h-1 bg-black/10 dark:bg-white/15 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-white"
           />
         </div>
       </div>

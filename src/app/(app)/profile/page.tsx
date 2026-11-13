@@ -328,7 +328,7 @@ export default function ProfilePage() {
             </p>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pt-2 pb-4 px-1 -mx-1 no-scrollbar">
+          <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
             {likedTracks.slice(0, 10).map((t) => (
               <TrackCard key={t.id} track={t} queue={likedTracks} />
             ))}

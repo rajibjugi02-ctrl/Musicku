@@ -327,7 +327,7 @@ export default function LibraryPage() {
               </p>
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pt-2 pb-4 px-1 -mx-1 no-scrollbar">
+            <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
               {likedTracks.map((t) => (
                 <TrackCard key={t.id} track={t} queue={likedTracks} />
               ))}
@@ -356,9 +356,9 @@ export default function LibraryPage() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-4 pt-3 pb-6 px-2 -mx-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4.5 pt-3 pb-6">
               {likedArtists.map((a) => (
-                <ArtistCard key={a.id} artist={a} />
+                <ArtistCard key={a.id} artist={a} className="w-full" />
               ))}
             </div>
           )}
@@ -392,7 +392,7 @@ export default function LibraryPage() {
               <p className="text-xs text-zinc-500">Play any track to start building your queue history.</p>
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pt-3 pb-6 px-2 -mx-2 scrollbar-thin">
+            <div className="flex gap-4 overflow-x-auto pt-3 pb-6 no-scrollbar">
               {queue.map((t) => (
                 <TrackCard key={t.id} track={t} queue={queue} />
               ))}

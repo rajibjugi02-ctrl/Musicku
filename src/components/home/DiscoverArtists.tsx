@@ -29,7 +29,7 @@ export default function DiscoverArtists() {
       </div>
 
       {loading ? (
-        <div className="flex gap-4 overflow-x-hidden pt-2 pb-4 px-1 -mx-1">
+        <div className="flex gap-4 overflow-x-hidden pt-2 pb-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="w-36 sm:w-40 flex-shrink-0 animate-pulse">
               <div className="w-full aspect-square rounded-[14px] bg-black/[0.06] dark:bg-white/[0.04]" />
@@ -39,7 +39,7 @@ export default function DiscoverArtists() {
           ))}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pt-2 pb-4 px-1 -mx-1 no-scrollbar">
+        <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
           {artists.map((a) => (
             <ArtistCard key={a.id} artist={a} />
           ))}

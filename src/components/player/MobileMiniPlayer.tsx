@@ -34,7 +34,7 @@ export default function MobileMiniPlayer() {
   return (
     <>
       {/* Floating Apple Music Mini Player Capsule (Positioned cleanly 8px above the 62px bottom navbar) */}
-      <div className="md:hidden fixed bottom-[86px] inset-x-3 z-40 select-none">
+      <div className="md:hidden fixed bottom-[86px] inset-x-3 max-w-md mx-auto z-40 select-none">
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
