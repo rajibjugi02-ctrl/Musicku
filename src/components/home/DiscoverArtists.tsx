@@ -41,7 +41,7 @@ export default function DiscoverArtists() {
       ) : (
         <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
           {artists.map((a) => (
-            <ArtistCard key={a.id} artist={a} />
+            <ArtistCard key={a.id} artist={a} carousel />
           ))}
         </div>
       )}

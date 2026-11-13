@@ -66,6 +66,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
   const consecutiveFailuresRef = useRef<number>(0);
   const lastSkipTimeRef = useRef<number>(0);
   const lastTimeUpdateRef = useRef<number>(0);
+  const requestIdRef = useRef<number>(0);
 
   const {
     currentTrack,
@@ -246,23 +247,10 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
       clearWatchdog();
       if (!audio || !audio.getAttribute("src")) return;
 
-      const now = Date.now();
-      if (now - lastSkipTimeRef.current < 2500) return;
-      lastSkipTimeRef.current = now;
-
-      consecutiveFailuresRef.current += 1;
-      if (consecutiveFailuresRef.current >= 3) {
-        console.warn("Multiple consecutive tracks failed to stream. Halting auto-skip.");
-        audio.pause();
-        audio.removeAttribute("src");
-        usePlayerStore.setState({ isPlaying: false, isBuffering: false, isResolvingStream: false });
-        return;
-      }
-
-      console.warn("Audio stream playback failed. Auto-skipping to next track in queue...");
+      console.warn("Audio stream playback failed on media element. Halting to prevent cascade skipping.");
       audio.pause();
       audio.removeAttribute("src");
-      next();
+      usePlayerStore.setState({ isPlaying: false, isBuffering: false, isResolvingStream: false });
     };
 
     audio.addEventListener("timeupdate", onTimeUpdate);
@@ -342,6 +330,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
 
     const controller = new AbortController();
     activeFetchControllerRef.current = controller;
+    const currentReqId = ++requestIdRef.current;
 
     setResolvingStream(true);
     setBuffering(true);
@@ -352,13 +341,14 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
       duration: String(currentTrack.duration || 0),
     });
 
-    fetch(`/api/stream?${params}`, { signal: controller.signal })
-      .then(async (res) => {
+    const executeFetch = async (isRetry = false) => {
+      try {
+        const res = await fetch(`/api/stream?${params}`, { signal: controller.signal });
         if (!res.ok) throw new Error(`Stream not available (${res.status})`);
-        return res.json();
-      })
-      .then((data) => {
-        if (controller.signal.aborted) return;
+        const data = await res.json();
+
+        // Stale request guard: if user switched tracks, discard immediately
+        if (requestIdRef.current !== currentReqId || controller.signal.aborted) return;
 
         const targetUrl = data.streamUrl || data.proxyUrl;
         if (targetUrl) {
@@ -376,28 +366,32 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
         } else {
           throw new Error("No targetUrl in stream response");
         }
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        console.warn(`Could not resolve full-track stream for ${currentTrack.name}:`, err.message);
-        setResolvingStream(false);
-        setBuffering(false);
+      } catch (err: any) {
+        if (requestIdRef.current !== currentReqId || controller.signal.aborted) return;
 
-        consecutiveFailuresRef.current += 1;
-        if (consecutiveFailuresRef.current >= 3) {
-          console.warn("Multiple consecutive tracks failed. Pausing playback to prevent infinite loop.");
-          usePlayerStore.setState({ isPlaying: false });
+        // 1x Automatic Retry if stream resolution is slow or momentarily failed
+        if (!isRetry) {
+          console.warn(`Stream fetch slow/failed for ${currentTrack.name}. Retrying 1x automatically...`);
+          setTimeout(() => {
+            if (requestIdRef.current === currentReqId && !controller.signal.aborted) {
+              executeFetch(true);
+            }
+          }, 600);
           return;
         }
 
-        const now = Date.now();
-        if (now - lastSkipTimeRef.current < 2500) return;
-        lastSkipTimeRef.current = now;
+        console.warn(`Could not resolve full-track stream for ${currentTrack.name} after retry:`, err?.message);
+        setResolvingStream(false);
+        setBuffering(false);
 
-        setTimeout(() => {
-          next();
-        }, 800);
-      });
+        // Anti-cascade skip: Do NOT jump uncontrollably across 2-3 tracks. Halt cleanly.
+        audio.pause();
+        audio.removeAttribute("src");
+        usePlayerStore.setState({ isPlaying: false, isResolvingStream: false, isBuffering: false });
+      }
+    };
+
+    executeFetch(false);
 
     return () => {
       controller.abort();

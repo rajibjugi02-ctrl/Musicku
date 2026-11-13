@@ -220,7 +220,7 @@ CURATED_ARTISTS.forEach((a) => {
  */
 export async function resolveRealArtistPicture(artistName: string): Promise<string> {
   if (!artistName || !artistName.trim()) {
-    return CURATED_ARTISTS[0].images[0].url;
+    return "";
   }
 
   const normalized = artistName.toLowerCase().trim();
@@ -228,7 +228,7 @@ export async function resolveRealArtistPicture(artistName: string): Promise<stri
     return artistPictureCache.get(normalized)!;
   }
 
-  // 1. Deezer Public Artist API (Provides 1000x1000 official artist portrait)
+  // 1. Deezer Public Artist API (Provides official artist portrait with strict name verification)
   try {
     const res = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(artistName)}&limit=1`, {
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
@@ -236,15 +236,20 @@ export async function resolveRealArtistPicture(artistName: string): Promise<stri
     });
     if (res.ok) {
       const data = await res.json();
-      const pic = data.data?.[0]?.picture_xl || data.data?.[0]?.picture_big || data.data?.[0]?.picture_medium;
-      if (pic && !pic.includes("artist//")) {
-        artistPictureCache.set(normalized, pic);
-        return pic;
+      const first = data.data?.[0];
+      const foundName = (first?.name || "").toLowerCase().trim();
+      const isMatch = foundName === normalized || foundName.includes(normalized) || normalized.includes(foundName);
+      if (isMatch) {
+        const pic = first.picture_xl || first.picture_big || first.picture_medium;
+        if (pic && !pic.includes("artist//")) {
+          artistPictureCache.set(normalized, pic);
+          return pic;
+        }
       }
     }
   } catch {}
 
-  // 2. Spotify Artist API
+  // 2. Spotify Artist API (Strict name validation)
   const token = await getSpotifyClientToken();
   if (token) {
     try {
@@ -254,7 +259,9 @@ export async function resolveRealArtistPicture(artistName: string): Promise<stri
       if (res.ok) {
         const data = await res.json();
         const artist = data.artists?.items?.[0];
-        if (artist?.images?.[0]?.url) {
+        const foundName = (artist?.name || "").toLowerCase().trim();
+        const isMatch = foundName === normalized || foundName.includes(normalized) || normalized.includes(foundName);
+        if (isMatch && artist?.images?.[0]?.url) {
           const pic = artist.images[0].url;
           artistPictureCache.set(normalized, pic);
           return pic;
@@ -263,13 +270,15 @@ export async function resolveRealArtistPicture(artistName: string): Promise<stri
     } catch {}
   }
 
-  // 3. Fallback to iTunes Search API
+  // 3. iTunes Search API (Strict name validation)
   try {
     const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=song&limit=1`);
     if (res.ok) {
       const data = await res.json();
       const track = data.results?.[0];
-      if (track?.artworkUrl100) {
+      const foundArtist = (track?.artistName || "").toLowerCase().trim();
+      const isMatch = foundArtist === normalized || foundArtist.includes(normalized) || normalized.includes(foundArtist);
+      if (isMatch && track?.artworkUrl100) {
         const pic = track.artworkUrl100.replace("100x100bb", "600x600bb");
         artistPictureCache.set(normalized, pic);
         return pic;
@@ -277,7 +286,7 @@ export async function resolveRealArtistPicture(artistName: string): Promise<stri
     }
   } catch {}
 
-  return CURATED_ARTISTS[0].images[0].url;
+  return "";
 }
 
 // ============================================================================

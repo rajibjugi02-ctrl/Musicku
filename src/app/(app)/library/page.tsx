@@ -327,7 +327,7 @@ export default function LibraryPage() {
               </p>
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 pt-3 pb-6">
               {likedTracks.map((t) => (
                 <TrackCard key={t.id} track={t} queue={likedTracks} />
               ))}
@@ -356,9 +356,9 @@ export default function LibraryPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4.5 pt-3 pb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 pt-3 pb-6">
               {likedArtists.map((a) => (
-                <ArtistCard key={a.id} artist={a} className="w-full" />
+                <ArtistCard key={a.id} artist={a} />
               ))}
             </div>
           )}

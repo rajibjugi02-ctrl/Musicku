@@ -48,7 +48,7 @@ export default function PlayHistory() {
       </div>
       <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
         {tracks.map((t) => (
-          <TrackCard key={t.id} track={t} queue={tracks} />
+          <TrackCard key={t.id} track={t} queue={tracks} carousel />
         ))}
       </div>
     </section>

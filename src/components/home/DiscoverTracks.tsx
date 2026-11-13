@@ -54,7 +54,7 @@ export default function DiscoverTracks() {
       ) : (
         <div className="flex gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
           {playerTracks.map((t) => (
-            <TrackCard key={t.id} track={t} queue={playerTracks} />
+            <TrackCard key={t.id} track={t} queue={playerTracks} carousel />
           ))}
         </div>
       )}

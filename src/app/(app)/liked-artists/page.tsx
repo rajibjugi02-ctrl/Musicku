@@ -85,9 +85,9 @@ export default function LikedArtistsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 pt-3 pb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 pt-3 pb-6">
           {mergedArtists.map((a) => (
-            <ArtistCard key={a.id} artist={a} className="w-full" />
+            <ArtistCard key={a.id} artist={a} />
           ))}
         </div>
       )}

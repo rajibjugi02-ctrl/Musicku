@@ -173,7 +173,7 @@ export default function SearchPage() {
                 </h2>
                 <div className="flex gap-3.5 sm:gap-4 overflow-x-auto pt-2 pb-4 no-scrollbar">
                   {artists.map((a) => (
-                    <ArtistCard key={a.id} artist={a} />
+                    <ArtistCard key={a.id} artist={a} carousel />
                   ))}
                 </div>
               </section>
@@ -185,9 +185,9 @@ export default function SearchPage() {
                 <h2 className="text-xs font-bold text-zinc-700 dark:text-zinc-400 uppercase tracking-widest mb-2">
                   Tracks ({playerTracks.length})
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4.5 pt-3 pb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 pt-3 pb-6">
                   {playerTracks.map((t) => (
-                    <TrackCard key={t.id} track={t} queue={playerTracks} className="w-full" />
+                    <TrackCard key={t.id} track={t} queue={playerTracks} />
                   ))}
                 </div>
               </section>

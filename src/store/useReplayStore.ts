@@ -122,7 +122,7 @@ export function resolveArtwork(trackName?: string, currentUrl?: string): string 
       return url;
     }
   }
-  return "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/92/9f/69/929f69f1-9977-3a44-d674-11f70c852d1b/24UMGIM36186.rgb.jpg/1000x1000bb.jpg";
+  return currentUrl || "";
 }
 
 interface ReplayState {

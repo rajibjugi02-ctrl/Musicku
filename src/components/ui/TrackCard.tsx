@@ -3,21 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Play, Pause, Heart, Plus } from "lucide-react";
+import { Play, Pause, Heart, Plus, Music } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
-import { useUIStore } from "@/store/useUIStore";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
 import type { PlayerTrack } from "@/types/music";
-import { cn } from "@/lib/utils";
+import { cn, getOptimizedImageUrl } from "@/lib/utils";
 
 interface Props {
   track: PlayerTrack;
   queue: PlayerTrack[];
   className?: string;
+  carousel?: boolean;
 }
 
-export default function TrackCard({ track, queue, className }: Props) {
+export default function TrackCard({ track, queue, className, carousel = false }: Props) {
   const router = useRouter();
   const { play, currentTrack, isPlaying, prefetchTrackStream } = usePlayerStore();
   const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
@@ -41,30 +41,41 @@ export default function TrackCard({ track, queue, className }: Props) {
     setIsLibraryModalOpen(true);
   };
 
-  const albumArt =
-    track.albumArt ||
-    "https://cdn-images.dzcdn.net/images/cover/2c45e43a9dc745330386cfc5feee0642/1000x1000-000000-80-0-0.jpg";
+  const rawArt = track.albumArt;
+  const optimizedArt = rawArt ? getOptimizedImageUrl(rawArt, 300) : null;
 
   return (
     <>
       <div
         onMouseEnter={handlePrewarm}
         onClick={() => play(track, queue)}
-        className={cn("flex-shrink-0 w-36 sm:w-40 group cursor-pointer select-none relative", className)}
+        className={cn(
+          "group cursor-pointer select-none relative",
+          carousel ? "w-[150px] sm:w-[175px] shrink-0" : "w-full min-w-0",
+          className
+        )}
       >
         <motion.div
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.98 }}
-          className="flex flex-col w-full"
+          className="flex flex-col w-full min-w-0"
         >
-          {/* Apple Music Frameless Square Artwork (Foto 2 Reference) */}
-          <div className="relative w-full aspect-square rounded-[14px] overflow-hidden shadow-md bg-zinc-200 dark:bg-zinc-850">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={albumArt}
-              alt={track.albumName || track.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+          {/* Apple Music Frameless Square Artwork */}
+          <div className="relative w-full aspect-square rounded-[16px] overflow-hidden shadow-sm hover:shadow-md bg-zinc-200 dark:bg-zinc-850 border border-black/[0.06] dark:border-white/10 flex items-center justify-center transition-all duration-300">
+            {optimizedArt ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={optimizedArt}
+                alt={track.albumName || track.name}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-zinc-300 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950 text-zinc-400 dark:text-zinc-500">
+                <Music className="w-10 h-10 stroke-[1.5]" />
+              </div>
+            )}
 
             {/* Subtle Gradient Shade for Top Floating Actions */}
             <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -100,56 +111,40 @@ export default function TrackCard({ track, queue, className }: Props) {
                 isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
               )}
             >
-              <div className="w-10 h-10 rounded-full bg-white text-zinc-950 flex items-center justify-center shadow-xl transform transition-transform group-hover:scale-105">
+              <div className="w-11 h-11 rounded-full bg-white dark:bg-white text-zinc-950 flex items-center justify-center shadow-xl transform transition-transform group-hover:scale-110 active:scale-95">
                 {isActive && isPlaying ? (
-                  <Pause className="w-4 h-4 fill-current" />
+                  <Pause className="w-5 h-5 fill-current" />
                 ) : (
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
                 )}
               </div>
             </div>
           </div>
 
-          {/* Left-Aligned Text Outside Below Artwork (Apple Music Reference) */}
-          <div className="mt-2 text-left w-full">
+          {/* Text Below Artwork */}
+          <div className="mt-2 text-left w-full min-w-0">
             <p
               className={cn(
-                "text-[15px] font-semibold truncate leading-tight transition-colors",
+                "text-[14px] sm:text-[15px] font-semibold leading-tight truncate transition-colors",
                 isActive
-                  ? "text-indigo-600 dark:text-white font-bold"
+                  ? "text-indigo-600 dark:text-indigo-400 font-bold"
                   : "text-zinc-950 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-white"
               )}
             >
               {track.name}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              {track.explicit && (
-                <span className="text-[8px] bg-black/10 dark:bg-white/15 text-zinc-700 dark:text-zinc-300 px-1 py-0.2 rounded font-mono font-medium leading-none flex-shrink-0">
-                  E
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  usePlayerStore.getState().setDesktopDetailOpen(false);
-                  useUIStore.getState().closeMobilePlayer();
-                  router.push(`/artist/${encodeURIComponent(track.artistName)}`);
-                }}
-                className="text-[13px] text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-white truncate leading-tight hover:underline cursor-pointer text-left"
-              >
-                {track.artistName}
-              </button>
-            </div>
+            <p className="text-[12px] sm:text-[13px] text-zinc-500 dark:text-zinc-400 leading-tight truncate mt-0.5">
+              {track.artistName}
+            </p>
           </div>
         </motion.div>
       </div>
 
-      {/* Add To Library Modal */}
+      {/* Add To Library Modal Dialog */}
       <AddToLibraryModal
-        track={track}
         isOpen={isLibraryModalOpen}
         onClose={() => setIsLibraryModalOpen(false)}
+        track={track}
       />
     </>
   );

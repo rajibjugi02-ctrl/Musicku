@@ -362,9 +362,9 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // 2400ms parallel race between verified Full-Track providers (JioSaavn & YouTube Music)
+  // 4000ms fast parallel race between verified Full-Track providers (JioSaavn & YouTube Music)
   const raceAbortController = new AbortController();
-  const raceTimeout = setTimeout(() => raceAbortController.abort(), 2400);
+  const raceTimeout = setTimeout(() => raceAbortController.abort(), 4000);
 
   try {
     const fullTrackRace = [
