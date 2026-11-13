@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,30 +9,222 @@ import {
   Pause,
   Share2,
   Download,
-  Clock,
-  Music,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
+  MessageCircle,
   Volume2,
   VolumeX,
+  Sparkles,
+  Trophy,
+  RotateCcw,
+  Clock,
+  Music,
   Award,
-  Flame,
-  Check,
+  Lock,
+  Calendar,
+  Eye,
   Disc3,
+  ExternalLink,
 } from "lucide-react";
-import { useReplayStore, resolveArtwork, type PeriodReport, type ReplayTrackSummary } from "@/store/useReplayStore";
+import {
+  useReplayStore,
+  resolveArtwork,
+  type PeriodReport,
+  type ReplayTrackSummary,
+} from "@/store/useReplayStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { cn } from "@/lib/utils";
 
 const MONTH_NAMES = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
 ];
 
-const TOTAL_STORY_SLIDES = 5; // Slide 0 to 4 (Slide 4 is the Full Summary & Share Card)
 const AUTO_ADVANCE_MS = 6500;
+
+interface LockStatus {
+  isLocked: boolean;
+  isEmpty: boolean;
+  title: string;
+  description: string;
+  daysRemaining: number;
+  unlockDateStr: string;
+}
+
+function evaluatePeriodLock(
+  type: "month" | "year",
+  periodKey: string,
+  totalTracks: number,
+  totalMinutes: number
+): LockStatus {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+  const currentDay = now.getDate();
+
+  if (type === "month") {
+    const [yStr, mStr] = periodKey.split("-");
+    const targetYear = parseInt(yStr, 10);
+    const targetMonth = parseInt(mStr, 10);
+    const monthLabel = MONTH_NAMES[targetMonth - 1] || mStr;
+
+    // Future month: locked
+    if (targetYear > currentYear || (targetYear === currentYear && targetMonth > currentMonth)) {
+      return {
+        isLocked: true,
+        isEmpty: true,
+        title: "Bulan Belum Dimulai",
+        description: `Aktivitas mendengarkan untuk ${monthLabel} ${targetYear} belum dimulai.`,
+        daysRemaining: 0,
+        unlockDateStr: `1 ${monthLabel} ${targetYear}`,
+      };
+    }
+
+    // Current month: locked until the last 2 days of the month (e.g. 29th or 30th/31st)
+    if (targetYear === currentYear && targetMonth === currentMonth) {
+      const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+      const unlockDay = Math.max(1, daysInMonth - 1);
+
+      if (currentDay < unlockDay) {
+        const daysRemaining = unlockDay - currentDay;
+        return {
+          isLocked: true,
+          isEmpty: totalMinutes === 0 && totalTracks === 0,
+          title: `Locked Until End of Month (${daysInMonth} ${monthLabel})`,
+          description: `Raport bulanan ${monthLabel} ${targetYear} hanya terbuka di akhir bulan. Aktivitas mendengarkanmu sedang direkam secara real-time.`,
+          daysRemaining,
+          unlockDateStr: `${unlockDay}–${daysInMonth} ${monthLabel} ${targetYear}`,
+        };
+      }
+
+      // If already at end of month but 0 plays
+      if (totalTracks === 0 || totalMinutes === 0) {
+        return {
+          isLocked: false,
+          isEmpty: true,
+          title: "Belum Ada Aktivitas Mendengarkan",
+          description: `0 Menit — Kamu belum memutar lagu di ${monthLabel} ${targetYear}. Putar lagu favoritmu sekarang untuk mulai menyusun raport musik!`,
+          daysRemaining: 0,
+          unlockDateStr: "",
+        };
+      }
+
+      return {
+        isLocked: false,
+        isEmpty: false,
+        title: "",
+        description: "",
+        daysRemaining: 0,
+        unlockDateStr: "",
+      };
+    }
+
+    // Past month (already ended): unlocked if has data, empty if 0
+    if (totalTracks === 0 || totalMinutes === 0) {
+      return {
+        isLocked: false,
+        isEmpty: true,
+        title: "0 Menit — Tidak Ada Aktivitas",
+        description: `Belum ada riwayat aktivitas mendengarkan di bulan ${monthLabel} ${targetYear}.`,
+        daysRemaining: 0,
+        unlockDateStr: "",
+      };
+    }
+
+    return {
+      isLocked: false,
+      isEmpty: false,
+      title: "",
+      description: "",
+      daysRemaining: 0,
+      unlockDateStr: "",
+    };
+  }
+
+  // Yearly Wrapped evaluation
+  const targetYear = parseInt(periodKey, 10);
+
+  // Future year
+  if (targetYear > currentYear) {
+    return {
+      isLocked: true,
+      isEmpty: true,
+      title: "Tahun Belum Dimulai",
+      description: `Raport tahunan ${targetYear} belum dimulai.`,
+      daysRemaining: 0,
+      unlockDateStr: `1 Januari ${targetYear}`,
+    };
+  }
+
+  // Current year: time-gated until late December (25-31 Dec)
+  if (targetYear === currentYear) {
+    const isLateDecember = currentMonth === 12 && currentDay >= 25;
+
+    if (!isLateDecember) {
+      const unlockTarget = new Date(currentYear, 11, 25);
+      const diffMs = unlockTarget.getTime() - now.getTime();
+      const daysRemaining = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+      return {
+        isLocked: true,
+        isEmpty: totalMinutes === 0 && totalTracks === 0,
+        title: `Year ${targetYear} Wrapped Terkunci`,
+        description: `Yearly Wrapped hanya terbuka di akhir tahun (25–31 Desember). Setiap lagu yang kamu dengarkan sepanjang tahun ini dicatat otomatis.`,
+        daysRemaining,
+        unlockDateStr: `25 Desember ${targetYear}`,
+      };
+    }
+
+    if (totalTracks === 0 || totalMinutes === 0) {
+      return {
+        isLocked: false,
+        isEmpty: true,
+        title: "0 Menit — Belum Ada Aktivitas",
+        description: `Belum ada riwayat pemutaran di tahun ${targetYear}.`,
+        daysRemaining: 0,
+        unlockDateStr: "",
+      };
+    }
+
+    return {
+      isLocked: false,
+      isEmpty: false,
+      title: "",
+      description: "",
+      daysRemaining: 0,
+      unlockDateStr: "",
+    };
+  }
+
+  // Past year
+  if (totalTracks === 0 || totalMinutes === 0) {
+    return {
+      isLocked: false,
+      isEmpty: true,
+      title: "0 Menit — Tidak Ada Riwayat",
+      description: `Belum ada riwayat pemutaran di tahun ${targetYear}.`,
+      daysRemaining: 0,
+      unlockDateStr: "",
+    };
+  }
+
+  return {
+    isLocked: false,
+    isEmpty: false,
+    title: "",
+    description: "",
+    daysRemaining: 0,
+    unlockDateStr: "",
+  };
+}
 
 export default function ReplayPage() {
   const router = useRouter();
@@ -52,53 +244,81 @@ export default function ReplayPage() {
     return getPeriodReport(activePeriodType);
   }, [getPeriodReport, activePeriodType, selectedMonth, selectedYear]);
 
-  // Story state: 0 = Minutes, 1 = #1 Track, 2 = #1 Artist, 3 = Top 5 & Aura, 4 = Full Summary
+  const lockStatus = useMemo(() => {
+    const key = activePeriodType === "month" ? selectedMonth : selectedYear;
+    return evaluatePeriodLock(activePeriodType, key, report.totalTracksPlayed, report.totalMinutes);
+  }, [activePeriodType, selectedMonth, selectedYear, report.totalTracksPlayed, report.totalMinutes]);
+
+  // Story slides: 0: Minutes, 1: Top Track, 2: Top Artist, 3: Aura & Top 5, 4: Summary Bento
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
-  const prevVolumeRef = useRef(volume);
-  const currentYearInt = new Date().getFullYear();
-  const currentMonthInt = new Date().getMonth() + 1;
+  const prevVolumeRef = useRef<number>(volume);
+  const hasAutoPlayedFinalRef = useRef(false);
+
+  const now = new Date();
+  const currentYearInt = now.getFullYear();
+  const currentMonthInt = now.getMonth() + 1;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    setTimeout(() => setToastMessage(null), 3200);
   };
 
-  // Auto-play #1 track when entering Slide 2 (index 1)
+  // Play top track through main app player engine
+  const handlePlayTopTrack = useCallback(() => {
+    if (!report.topTrack) return;
+    const current = report.topTrack;
+
+    play(
+      {
+        id: current.id,
+        uri: `spotify:track:${current.id}`,
+        name: current.name,
+        artistName: current.artistName,
+        albumName: current.albumName || "Single",
+        albumArt: resolveArtwork(current.name, current.albumArt),
+        duration: current.duration || 180000,
+        previewUrl: null,
+        explicit: false,
+      },
+      report.topTracks.length > 0
+        ? report.topTracks.map((item) => ({
+            id: item.id,
+            uri: `spotify:track:${item.id}`,
+            name: item.name,
+            artistName: item.artistName,
+            albumName: item.albumName || "Single",
+            albumArt: resolveArtwork(item.name, item.albumArt),
+            duration: item.duration || 180000,
+            previewUrl: null,
+            explicit: false,
+          }))
+        : undefined
+    );
+  }, [play, report.topTrack, report.topTracks]);
+
+  // Auto-play #1 track smoothly when entering Slide 2 (index 1) or Final Slide (index 4)
   useEffect(() => {
     if (currentSlide === 1 && report.topTrack) {
-      play(
-        {
-          id: report.topTrack.id,
-          uri: `spotify:track:${report.topTrack.id}`,
-          name: report.topTrack.name,
-          artistName: report.topTrack.artistName,
-          albumName: report.topTrack.albumName,
-          albumArt: resolveArtwork(report.topTrack.name, report.topTrack.albumArt),
-          duration: report.topTrack.duration,
-          previewUrl: null,
-          explicit: false,
-        },
-        report.topTracks.map((t) => ({
-          id: t.id,
-          uri: `spotify:track:${t.id}`,
-          name: t.name,
-          artistName: t.artistName,
-          albumName: t.albumName,
-          albumArt: resolveArtwork(t.name, t.albumArt),
-          duration: t.duration,
-          previewUrl: null,
-          explicit: false,
-        }))
-      );
+      handlePlayTopTrack();
     }
-  }, [currentSlide, report.topTrack]);
+  }, [currentSlide, report.topTrack, handlePlayTopTrack]);
+
+  useEffect(() => {
+    if (currentSlide === 4 && report.topTrack && !hasAutoPlayedFinalRef.current) {
+      hasAutoPlayedFinalRef.current = true;
+      handlePlayTopTrack();
+    }
+  }, [currentSlide, report.topTrack, handlePlayTopTrack]);
 
   // Auto-advance timer for Slides 0 to 3 (stops on Slide 4)
   useEffect(() => {
+    if (lockStatus.isLocked && !isPreviewMode) return;
+    if (lockStatus.isEmpty) return;
     if (currentSlide >= 4) return;
 
     const timer = setTimeout(() => {
@@ -106,7 +326,7 @@ export default function ReplayPage() {
     }, AUTO_ADVANCE_MS);
 
     return () => clearTimeout(timer);
-  }, [currentSlide]);
+  }, [currentSlide, lockStatus.isLocked, lockStatus.isEmpty, isPreviewMode]);
 
   const handleNext = () => {
     setCurrentSlide((prev) => Math.min(4, prev + 1));
@@ -145,9 +365,9 @@ export default function ReplayPage() {
         uri: `spotify:track:${t.id}`,
         name: t.name,
         artistName: t.artistName,
-        albumName: t.albumName,
+        albumName: t.albumName || "Single",
         albumArt: resolveArtwork(t.name, t.albumArt),
-        duration: t.duration,
+        duration: t.duration || 180000,
         previewUrl: null,
         explicit: false,
       },
@@ -156,9 +376,9 @@ export default function ReplayPage() {
         uri: `spotify:track:${item.id}`,
         name: item.name,
         artistName: item.artistName,
-        albumName: item.albumName,
+        albumName: item.albumName || "Single",
         albumArt: resolveArtwork(item.name, item.albumArt),
-        duration: item.duration,
+        duration: item.duration || 180000,
         previewUrl: null,
         explicit: false,
       }))
@@ -166,6 +386,10 @@ export default function ReplayPage() {
   };
 
   const ambientArt = resolveArtwork(report.topTrack?.name, report.topTrack?.albumArt);
+
+  // Determine if time-gated lock is blocking normal display
+  const isCurrentlyLocked = lockStatus.isLocked && !isPreviewMode;
+  const isCurrentlyEmpty = lockStatus.isEmpty && !isPreviewMode;
 
   return (
     <motion.div
@@ -179,44 +403,354 @@ export default function ReplayPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={ambientArt}
-          alt=""
-          className="w-full h-full object-cover blur-[110px] scale-150 transform-gpu"
+          alt="Ambient Background"
+          className="w-full h-full object-cover blur-3xl scale-150 filter grayscale contrast-125"
         />
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#07080f]/90 via-[#07080f]/80 to-[#07080f]/95" />
       </div>
 
-      {/* Toast Alert */}
+      {/* Floating Notification Toast */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-6 inset-x-4 mx-auto max-w-xs z-[150] glass-panel bg-zinc-900/95 text-white text-xs font-semibold py-2.5 px-4 rounded-2xl shadow-2xl flex items-center justify-center gap-2 border border-white/20"
+            className="fixed top-6 inset-x-0 mx-auto w-fit z-[100] px-5 py-2.5 rounded-full glass-panel border border-white/25 shadow-2xl text-xs font-bold text-white flex items-center gap-2 bg-zinc-950/90 backdrop-blur-2xl"
           >
-            <Check className="w-4 h-4 text-emerald-400" />
+            <Sparkles className="w-3.5 h-3.5 text-white animate-spin" />
             <span>{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ─────────────────────────────────────────────────────────────
-          MODE A: SEQUENTIAL STORY PRESENTATION (Slides 1 to 4)
+          STATE 1: LOCKED VIEW (Time-gated until end of month / year)
          ───────────────────────────────────────────────────────────── */}
-      {currentSlide < 4 ? (
-        <div className="relative z-20 flex-1 flex flex-col justify-between p-4 sm:p-6 md:p-8 max-w-2xl mx-auto w-full h-full">
-          {/* Top Story Controls & Progress Bars */}
-          <div className="flex flex-col gap-3 flex-shrink-0">
-            {/* 5 Progress Bars */}
-            <div className="flex items-center gap-1.5 pt-1">
-              {[...Array(TOTAL_STORY_SLIDES)].map((_, idx) => (
+      {isCurrentlyLocked ? (
+        <div className="relative z-20 flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-5 max-w-4xl mx-auto w-full flex flex-col justify-between">
+          {/* Top Bar with Period Selectors */}
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold tracking-widest uppercase text-zinc-400">
+                  Musicku Replay
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Period Switcher */}
+                <div className="flex items-center p-1 rounded-xl glass-card border border-white/15 gap-1">
+                  <button
+                    onClick={() => setActivePeriodType("month")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      activePeriodType === "month"
+                        ? "bg-white text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    onClick={() => setActivePeriodType("year")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      activePeriodType === "year"
+                        ? "bg-white text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Yearly
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleClose}
+                  className="w-9 h-9 rounded-full glass-card hover:bg-white/15 flex items-center justify-center text-white/80 hover:text-white transition-all cursor-pointer"
+                  title="Tutup Replay"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Month / Year Selector Capsule */}
+            <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {activePeriodType === "month" ? (
+                MONTH_NAMES.slice(0, currentMonthInt).map((name, idx) => {
+                  const monthKey = `${currentYearInt}-${String(idx + 1).padStart(2, "0")}`;
+                  const isSelected = selectedMonth === monthKey;
+                  return (
+                    <button
+                      key={monthKey}
+                      onClick={() => setSelectedMonth(monthKey)}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-white text-zinc-950 font-bold shadow-sm"
+                          : "glass-card text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      {name}
+                    </button>
+                  );
+                })
+              ) : (
+                [currentYearInt, currentYearInt - 1].map((year) => {
+                  const yearStr = String(year);
+                  const isSelected = selectedYear === yearStr;
+                  return (
+                    <button
+                      key={yearStr}
+                      onClick={() => setSelectedYear(yearStr)}
+                      className={cn(
+                        "px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-white text-zinc-950 font-bold shadow-sm"
+                          : "glass-card text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      {yearStr}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Central Glass Locked Card */}
+          <div className="my-auto py-8 flex flex-col items-center text-center max-w-lg mx-auto">
+            <div className="w-20 h-20 rounded-3xl glass-panel border border-white/20 flex items-center justify-center shadow-2xl relative mb-5">
+              <div className="absolute inset-0 rounded-3xl bg-white/5 animate-pulse" />
+              <Lock className="w-9 h-9 text-white drop-shadow-md" />
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full glass-card text-xs font-mono font-bold text-zinc-300 border border-white/15 mb-3">
+              <Calendar className="w-3.5 h-3.5 text-white/80" />
+              <span>Rilis: {lockStatus.unlockDateStr}</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+              {lockStatus.title}
+            </h2>
+
+            <p className="text-xs sm:text-sm text-zinc-300 mt-2 leading-relaxed">
+              {lockStatus.description}
+            </p>
+
+            {/* Countdown Badge */}
+            {lockStatus.daysRemaining > 0 && (
+              <div className="mt-5 px-5 py-2.5 rounded-2xl glass-panel border border-white/20 flex items-center gap-3">
+                <Clock className="w-4 h-4 text-white" />
+                <span className="text-sm font-mono font-black text-white tracking-wide">
+                  {lockStatus.daysRemaining} HARI LAGI MENUJU RILIS
+                </span>
+              </div>
+            )}
+
+            {/* Live Telemetry Progress Card */}
+            <div className="w-full mt-6 p-4 rounded-2xl glass-card border border-white/15 text-left flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400">
+                  Status Telemetri
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  Merekam Real-Time
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
+                <div>
+                  <span className="text-zinc-500 text-[10px]">Total Terkumpul</span>
+                  <p className="text-sm font-bold text-white mt-0.5">
+                    {report.totalMinutes} Menit
+                  </p>
+                </div>
+                <div>
+                  <span className="text-zinc-500 text-[10px]">Lagu Diputar</span>
+                  <p className="text-sm font-bold text-white mt-0.5">
+                    {report.totalTracksPlayed} tracks
+                  </p>
+                </div>
+              </div>
+
+              {report.topTrack && (
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                  <span className="text-zinc-400 text-[11px] truncate max-w-[200px]">
+                    🎵 Top: <strong className="text-white">{report.topTrack.name}</strong>
+                  </span>
+                  <button
+                    onClick={handlePlayTopTrack}
+                    className="text-[11px] font-bold text-white hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    Putar
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Test Preview Button (Allows checking report anytime if user has recorded tracks) */}
+            {report.totalTracksPlayed > 0 && (
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={() => {
+                    setIsPreviewMode(true);
+                    setCurrentSlide(0);
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-white text-zinc-950 text-xs font-bold shadow-lg hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Lihat Pratinjau Raport ({report.totalMinutes} Menit)</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center text-[11px] text-zinc-500 font-mono py-2">
+            musicku.app • Apple iOS 26 Audio Telemetry Engine
+          </div>
+        </div>
+      ) : isCurrentlyEmpty ? (
+        /* ─────────────────────────────────────────────────────────────
+            STATE 2: EMPTY STATE (0 minutes in past month / unused year)
+           ───────────────────────────────────────────────────────────── */
+        <div className="relative z-20 flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-5 max-w-4xl mx-auto w-full flex flex-col justify-between">
+          {/* Top Bar with Period Selectors */}
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold tracking-widest uppercase text-zinc-400">
+                  Musicku Replay
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center p-1 rounded-xl glass-card border border-white/15 gap-1">
+                  <button
+                    onClick={() => setActivePeriodType("month")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      activePeriodType === "month"
+                        ? "bg-white text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    onClick={() => setActivePeriodType("year")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      activePeriodType === "year"
+                        ? "bg-white text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Yearly
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleClose}
+                  className="w-9 h-9 rounded-full glass-card hover:bg-white/15 flex items-center justify-center text-white/80 hover:text-white transition-all cursor-pointer"
+                  title="Tutup Replay"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Month / Year Selector Capsule */}
+            <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {activePeriodType === "month" ? (
+                MONTH_NAMES.slice(0, currentMonthInt).map((name, idx) => {
+                  const monthKey = `${currentYearInt}-${String(idx + 1).padStart(2, "0")}`;
+                  const isSelected = selectedMonth === monthKey;
+                  return (
+                    <button
+                      key={monthKey}
+                      onClick={() => setSelectedMonth(monthKey)}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-white text-zinc-950 font-bold shadow-sm"
+                          : "glass-card text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      {name}
+                    </button>
+                  );
+                })
+              ) : (
+                [currentYearInt, currentYearInt - 1].map((year) => {
+                  const yearStr = String(year);
+                  const isSelected = selectedYear === yearStr;
+                  return (
+                    <button
+                      key={yearStr}
+                      onClick={() => setSelectedYear(yearStr)}
+                      className={cn(
+                        "px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-white text-zinc-950 font-bold shadow-sm"
+                          : "glass-card text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      {yearStr}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Central Empty State Card */}
+          <div className="my-auto py-8 flex flex-col items-center text-center max-w-md mx-auto">
+            <div className="w-20 h-20 rounded-3xl glass-panel border border-white/20 flex items-center justify-center shadow-xl mb-5">
+              <Disc3 className="w-9 h-9 text-zinc-400 animate-spin-slow" />
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              {lockStatus.title}
+            </h2>
+
+            <p className="text-xs sm:text-sm text-zinc-300 mt-2 leading-relaxed">
+              {lockStatus.description}
+            </p>
+
+            <button
+              onClick={() => router.push("/discover")}
+              className="mt-6 px-6 py-2.5 rounded-full bg-white text-zinc-950 text-xs font-bold shadow-lg hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Music className="w-3.5 h-3.5" />
+              <span>Jelajahi & Putar Musik</span>
+            </button>
+          </div>
+
+          <div className="text-center text-[11px] text-zinc-500 font-mono py-2">
+            musicku.app • Tidak ada data dummy (100% Pemutaran Asli)
+          </div>
+        </div>
+      ) : currentSlide < 4 ? (
+        /* ─────────────────────────────────────────────────────────────
+            MODE A: STORY SLIDESHOW (Slides 0 to 3)
+           ───────────────────────────────────────────────────────────── */
+        <div className="relative z-20 flex-1 flex flex-col justify-between max-w-lg mx-auto w-full px-4 sm:px-6 py-4">
+          {/* Top Progress Bars & Controls */}
+          <div className="flex flex-col gap-2">
+            {/* 5-segment Story Progress Bars */}
+            <div className="flex items-center gap-1.5 w-full">
+              {[0, 1, 2, 3, 4].map((idx) => (
                 <div
                   key={idx}
-                  className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden"
+                  className="flex-1 h-1 rounded-full bg-white/20 overflow-hidden"
                 >
                   <div
                     className={cn(
-                      "h-full bg-white transition-all duration-150",
+                      "h-full bg-white transition-all duration-300",
                       idx < currentSlide
                         ? "w-full"
                         : idx === currentSlide
@@ -300,8 +834,8 @@ export default function ReplayPage() {
                 </motion.div>
               )}
 
-              {/* SLIDE 2: #1 TOP TRACK (WITH REAL ARTWORK) */}
-              {currentSlide === 1 && report.topTrack && (
+              {/* SLIDE 2: #1 TOP TRACK (Guarded against null/black screen) */}
+              {currentSlide === 1 && (
                 <motion.div
                   key="slide-1"
                   initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -313,41 +847,54 @@ export default function ReplayPage() {
                   <span className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400">
                     Lagu Nomor #1 Pilihanmu
                   </span>
-                  <div className="relative w-52 h-52 sm:w-64 sm:h-64 rounded-[32px] overflow-hidden shadow-2xl border-2 border-white/25 group">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={resolveArtwork(report.topTrack.name, report.topTrack.albumArt)}
-                      alt={report.topTrack.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handlePlaySpecificTrack(report.topTrack!)}
-                        className="w-12 h-12 rounded-full bg-white text-zinc-950 flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                      >
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
-                      </button>
+
+                  {report.topTrack ? (
+                    <>
+                      <div className="relative w-52 h-52 sm:w-64 sm:h-64 rounded-[32px] overflow-hidden shadow-2xl border-2 border-white/25 group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={resolveArtwork(report.topTrack.name, report.topTrack.albumArt)}
+                          alt={report.topTrack.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={handlePlayTopTrack}
+                            className="w-12 h-12 rounded-full bg-white text-zinc-950 flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-w-md">
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight truncate leading-tight">
+                          {report.topTrack.name}
+                        </h2>
+                        <p className="text-sm sm:text-base font-semibold text-zinc-300 mt-1">
+                          {report.topTrack.artistName}
+                        </p>
+                        <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                          {report.topTrack.albumName}
+                        </p>
+                      </div>
+                      <span className="px-4 py-1.5 rounded-full glass-card text-xs font-mono font-bold text-white border border-white/20">
+                        🔥 Diputar {report.topTrack.playCount} kali
+                      </span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 py-10">
+                      <div className="w-20 h-20 rounded-2xl glass-panel border border-white/20 flex items-center justify-center">
+                        <Music className="w-8 h-8 text-zinc-400" />
+                      </div>
+                      <p className="text-base font-bold text-white">Belum Ada Lagu Teratas</p>
+                      <p className="text-xs text-zinc-400">Putar lagu untuk menentukan lagu favoritmu.</p>
                     </div>
-                  </div>
-                  <div className="max-w-md">
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight truncate leading-tight">
-                      {report.topTrack.name}
-                    </h2>
-                    <p className="text-sm sm:text-base font-semibold text-zinc-300 mt-1">
-                      {report.topTrack.artistName}
-                    </p>
-                    <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                      {report.topTrack.albumName}
-                    </p>
-                  </div>
-                  <span className="px-4 py-1.5 rounded-full glass-card text-xs font-mono font-bold text-white border border-white/20">
-                    🔥 Diputar {report.topTrack.playCount} kali
-                  </span>
+                  )}
                 </motion.div>
               )}
 
-              {/* SLIDE 3: #1 TOP ARTIST (WITH REAL PORTRAIT) */}
-              {currentSlide === 2 && report.topArtist && (
+              {/* SLIDE 3: #1 TOP ARTIST (Guarded against null/black screen) */}
+              {currentSlide === 2 && (
                 <motion.div
                   key="slide-2"
                   initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -359,29 +906,42 @@ export default function ReplayPage() {
                   <span className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400">
                     Artis Nomor #1 Kamu
                   </span>
-                  <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-full overflow-hidden shadow-2xl border-4 border-white/30">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={resolveArtwork(report.topArtist.name, report.topArtist.image)}
-                      alt={report.topArtist.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                      {report.topArtist.name}
-                    </h2>
-                    <p className="text-sm text-zinc-300 font-medium mt-1">
-                      Artis yang paling setia menemani hari-harimu
-                    </p>
-                  </div>
-                  <span className="px-4 py-1.5 rounded-full glass-card text-xs font-mono font-bold text-white border border-white/20">
-                    {report.topArtist.playCount} total lagu diputar
-                  </span>
+
+                  {report.topArtist ? (
+                    <>
+                      <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-full overflow-hidden shadow-2xl border-4 border-white/30">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={resolveArtwork(report.topArtist.name, report.topArtist.image)}
+                          alt={report.topArtist.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                          {report.topArtist.name}
+                        </h2>
+                        <p className="text-sm text-zinc-300 font-medium mt-1">
+                          Artis yang paling sering menemanimu
+                        </p>
+                      </div>
+                      <span className="px-4 py-1.5 rounded-full glass-card text-xs font-mono font-bold text-white border border-white/20">
+                        {report.topArtist.playCount} pemutaran lagu
+                      </span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 py-10">
+                      <div className="w-20 h-20 rounded-full glass-panel border border-white/20 flex items-center justify-center">
+                        <Music className="w-8 h-8 text-zinc-400" />
+                      </div>
+                      <p className="text-base font-bold text-white">Belum Ada Artis Teratas</p>
+                      <p className="text-xs text-zinc-400">Dengarkan lagu untuk menganalisis artis teratas.</p>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
-              {/* SLIDE 4: TOP 5 COUNTDOWN & LISTENING AURA */}
+              {/* SLIDE 4: TOP 5 COUNTDOWN & AURA */}
               {currentSlide === 3 && (
                 <motion.div
                   key="slide-3"
@@ -389,34 +949,32 @@ export default function ReplayPage() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.92, y: -15 }}
                   transition={{ duration: 0.4 }}
-                  className="flex flex-col items-center gap-5 w-full max-w-md px-2"
+                  className="flex flex-col items-center gap-3 px-4 w-full max-w-sm"
                 >
-                  <div>
-                    <span className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400">
-                      Top 5 Playlist & Listening Aura
-                    </span>
-                    <h3 className="text-xl font-extrabold text-white mt-1">
-                      Koleksi Terbaikmu
-                    </h3>
-                  </div>
+                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400">
+                    Daftar Lagu Teratas & Persona
+                  </span>
 
-                  {/* Top 3 Quick Preview */}
-                  <div className="w-full flex flex-col gap-2">
-                    {report.topTracks.slice(0, 3).map((t, idx) => (
+                  {/* Top 5 mini list */}
+                  <div className="w-full space-y-1.5 my-1">
+                    {report.topTracks.slice(0, 5).map((t, i) => (
                       <div
                         key={t.id}
-                        className="flex items-center justify-between p-2 rounded-xl glass-card border border-white/15"
+                        onClick={() => handlePlaySpecificTrack(t)}
+                        className="flex items-center justify-between p-2 rounded-xl glass-card border border-white/10 hover:border-white/25 transition-all cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <span className="w-5 text-center text-xs font-mono font-bold text-zinc-400">
-                            #{idx + 1}
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-5 text-center font-mono font-bold text-xs text-zinc-400 group-hover:text-white">
+                            #{i + 1}
                           </span>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={resolveArtwork(t.name, t.albumArt)}
-                            alt={t.name}
-                            className="w-9 h-9 rounded-lg object-cover shadow-sm border border-white/15 flex-shrink-0"
-                          />
+                          <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-white/15">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={resolveArtwork(t.name, t.albumArt)}
+                              alt={t.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                           <div className="min-w-0 flex-1 text-left">
                             <p className="text-xs font-bold text-white truncate">{t.name}</p>
                             <p className="text-[11px] text-zinc-400 truncate">{t.artistName}</p>
@@ -425,6 +983,11 @@ export default function ReplayPage() {
                         <span className="text-xs font-mono text-zinc-400 pr-1">{t.playCount}x</span>
                       </div>
                     ))}
+                    {report.topTracks.length === 0 && (
+                      <div className="p-4 rounded-xl glass-card text-xs text-zinc-400 text-center">
+                        Belum ada daftar 5 lagu teratas
+                      </div>
+                    )}
                   </div>
 
                   {/* Aura Card Preview */}
@@ -607,7 +1170,7 @@ export default function ReplayPage() {
               </div>
             </div>
 
-            {/* Spotlight #1 Track Card */}
+            {/* Spotlight #1 Track Card (With instant Play Now button connected to main audio engine) */}
             {report.topTrack ? (
               <div className="md:col-span-1 lg:col-span-2 rounded-[28px] glass-panel p-6 border border-white/15 flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-3">
@@ -628,7 +1191,7 @@ export default function ReplayPage() {
                       className="w-full h-full object-cover"
                     />
                     <button
-                      onClick={() => handlePlaySpecificTrack(report.topTrack!)}
+                      onClick={handlePlayTopTrack}
                       className="absolute inset-0 m-auto w-9 h-9 rounded-full bg-white text-zinc-950 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
                     >
                       <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -648,25 +1211,37 @@ export default function ReplayPage() {
                 </div>
 
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
-                  <span>{report.topTrack.totalMinutes} menit total</span>
+                  <span>Durasi total: {report.topTrack.totalMinutes} menit</span>
                   <button
-                    onClick={() => handlePlaySpecificTrack(report.topTrack!)}
-                    className="font-bold text-white hover:underline cursor-pointer"
+                    onClick={handlePlayTopTrack}
+                    className="font-bold text-white hover:underline cursor-pointer flex items-center gap-1"
                   >
-                    Putar Sekarang →
+                    <span>Putar Sekarang</span>
+                    <span>→</span>
                   </button>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="md:col-span-1 lg:col-span-2 rounded-[28px] glass-panel p-6 border border-white/15 flex flex-col justify-center items-center text-center">
+                <Music className="w-8 h-8 text-zinc-500 mb-2" />
+                <p className="text-sm font-bold text-zinc-400">Belum ada lagu yang diputar</p>
+              </div>
+            )}
 
-            {/* Spotlight #1 Artist Card */}
+            {/* Spotlight #1 Top Artist Card */}
             {report.topArtist ? (
-              <div className="md:col-span-1 rounded-[28px] glass-panel p-6 border border-white/15 flex flex-col justify-between text-center">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400 text-left">
-                  #1 Top Artist
-                </span>
-                <div className="flex flex-col items-center my-3">
-                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-xl border-2 border-white/20 mb-2">
+              <div className="md:col-span-1 lg:col-span-2 rounded-[28px] glass-panel p-6 border border-white/15 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                    #1 Top Artist
+                  </span>
+                  <span className="text-xs font-mono font-bold text-zinc-300">
+                    👑 Artis Teratas
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4 my-2">
+                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-xl border-2 border-white/30 flex-shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolveArtwork(report.topArtist.name, report.topArtist.image)}
@@ -674,117 +1249,119 @@ export default function ReplayPage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h4 className="text-base font-extrabold text-white truncate max-w-full">
-                    {report.topArtist.name}
-                  </h4>
-                  <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                    {report.topArtist.playCount} pemutaran
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xl font-black text-white tracking-tight truncate">
+                      {report.topArtist.name}
+                    </h3>
+                    <p className="text-xs text-zinc-400 font-semibold mt-0.5">
+                      {report.topArtist.playCount} total pemutaran
+                    </p>
+                  </div>
                 </div>
-                <div className="pt-2 border-t border-white/10 text-[11px] text-zinc-500 font-mono">
-                  Artis Paling Sering Didengar
+
+                <div className="pt-2 border-t border-white/10 text-xs text-zinc-500">
+                  Artis yang paling setia menemanimu di {report.periodLabel}
                 </div>
               </div>
             ) : null}
 
-            {/* Listening Aura Card (Pure Monochrome Titanium) */}
-            <div className="md:col-span-2 lg:col-span-3 rounded-[28px] glass-panel p-6 sm:p-7 border border-white/15 flex flex-col sm:flex-row items-center gap-5">
-              <div className="w-18 h-18 rounded-3xl glass-card border border-white/25 flex items-center justify-center text-4xl shadow-xl flex-shrink-0">
-                {report.aura.emoji}
-              </div>
-              <div className="flex-1 text-center sm:text-left">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 block mb-1">
-                  Listening Persona & Vibe
+            {/* Listening Persona Aura Card */}
+            <div className="md:col-span-2 rounded-[28px] glass-panel p-6 border border-white/15 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                  Listening Aura
                 </span>
-                <h3 className="text-xl font-black text-white tracking-tight">
-                  {report.aura.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-300 mt-1 leading-relaxed">
-                  {report.aura.description}
-                </p>
-                <p className="text-[11px] font-mono text-zinc-400 mt-1.5">
-                  Vibe: {report.aura.vibe} • {report.aura.tagline}
-                </p>
+                <span className="text-xs font-mono font-bold text-zinc-300">
+                  {report.aura.vibe}
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Top 5 Tracks & Top 5 Artists Lists */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            {/* Top 5 Tracks */}
-            <div className="rounded-[28px] glass-panel p-6 border border-white/15">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-300 flex items-center gap-2">
-                  <Music className="w-4 h-4 text-white" />
-                  <span>Top 5 Tracks</span>
-                </h3>
-                <span className="text-[11px] font-mono text-zinc-500">Play Count</span>
+              <div className="flex items-center gap-4 my-2">
+                <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center text-4xl shadow-md border border-white/20 flex-shrink-0">
+                  {report.aura.emoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-bold text-white truncate">
+                    {report.aura.name}
+                  </h3>
+                  <p className="text-xs font-medium text-zinc-300 mt-1 line-clamp-2">
+                    {report.aura.description}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {report.topTracks.map((t, idx) => (
-                  <div
-                    key={t.id}
-                    onClick={() => handlePlaySpecificTrack(t)}
-                    className="flex items-center justify-between p-2.5 rounded-2xl glass-card hover:bg-white/10 border border-white/10 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="w-5 text-center text-xs font-mono font-bold text-zinc-400 group-hover:text-white">
-                        #{idx + 1}
-                      </span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={resolveArtwork(t.name, t.albumArt)}
-                        alt={t.name}
-                        className="w-10 h-10 rounded-xl object-cover shadow-sm border border-white/15 flex-shrink-0"
-                      />
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="text-xs font-bold text-white truncate">{t.name}</p>
-                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">{t.artistName}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 pl-2">
-                      <span className="text-xs font-mono text-zinc-300">{t.playCount}x</span>
-                      <Play className="w-3.5 h-3.5 fill-current opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                ))}
+              <div className="pt-2 border-t border-white/10 text-[11px] text-zinc-500 font-mono">
+                Tagline: {report.aura.tagline}
               </div>
             </div>
 
-            {/* Top 5 Artists */}
-            <div className="rounded-[28px] glass-panel p-6 border border-white/15">
+            {/* Top 5 Tracks List Card */}
+            <div className="md:col-span-2 lg:col-span-2 rounded-[28px] glass-panel p-6 border border-white/15">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-300 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-white" />
-                  <span>Top 5 Artists</span>
-                </h3>
-                <span className="text-[11px] font-mono text-zinc-500">Plays</span>
+                <h4 className="text-sm font-bold text-white">Top 5 Songs</h4>
+                <span className="text-xs font-mono text-zinc-400">Ranked by Plays</span>
               </div>
-              <div className="flex flex-col gap-2">
-                {report.topArtists.map((a, idx) => (
+              <div className="space-y-2">
+                {report.topTracks.slice(0, 5).map((track, i) => (
                   <div
-                    key={a.name}
-                    onClick={() => router.push(`/artist/${encodeURIComponent(a.name)}`)}
-                    className="flex items-center justify-between p-2.5 rounded-2xl glass-card hover:bg-white/10 border border-white/10 transition-all cursor-pointer group"
+                    key={track.id}
+                    onClick={() => handlePlaySpecificTrack(track)}
+                    className="flex items-center justify-between p-2 rounded-xl glass-card hover:bg-white/10 transition-all cursor-pointer group"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="w-5 text-center text-xs font-mono font-bold text-zinc-400 group-hover:text-white">
-                        #{idx + 1}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-4 font-mono font-bold text-xs text-zinc-400 group-hover:text-white">
+                        {i + 1}
                       </span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={resolveArtwork(a.name, a.image)}
-                        alt={a.name}
-                        className="w-10 h-10 rounded-full object-cover shadow-sm border border-white/15 flex-shrink-0"
-                      />
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="text-xs font-bold text-white truncate">{a.name}</p>
-                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">Favorite Artist</p>
+                      <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-white/15">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={resolveArtwork(track.name, track.albumArt)}
+                          alt={track.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate">{track.name}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{track.artistName}</p>
                       </div>
                     </div>
-                    <span className="text-xs font-mono text-zinc-300">{a.playCount} plays</span>
+                    <span className="text-xs font-mono text-zinc-400 font-semibold">{track.playCount}x</span>
                   </div>
                 ))}
+                {report.topTracks.length === 0 && (
+                  <p className="text-xs text-zinc-500 text-center py-4">Belum ada lagu tercatat</p>
+                )}
+              </div>
+            </div>
+
+            {/* Top 5 Artists List Card */}
+            <div className="md:col-span-1 lg:col-span-2 rounded-[28px] glass-panel p-6 border border-white/15">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-bold text-white">Top 5 Artists</h4>
+                <span className="text-xs font-mono text-zinc-400">Paling Sering Didengar</span>
+              </div>
+              <div className="space-y-2">
+                {report.topArtists.slice(0, 5).map((artist, i) => (
+                  <div
+                    key={artist.name}
+                    className="flex items-center justify-between p-2 rounded-xl glass-card hover:bg-white/10 transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-4 font-mono font-bold text-xs text-zinc-400">{i + 1}</span>
+                      <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-white/20">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={resolveArtwork(artist.name, artist.image)}
+                          alt={artist.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <p className="text-xs font-bold text-white truncate">{artist.name}</p>
+                    </div>
+                    <span className="text-xs font-mono text-zinc-400 font-semibold">{artist.playCount} plays</span>
+                  </div>
+                ))}
+                {report.topArtists.length === 0 && (
+                  <p className="text-xs text-zinc-500 text-center py-4">Belum ada artis tercatat</p>
+                )}
               </div>
             </div>
           </div>
@@ -799,9 +1376,9 @@ export default function ReplayPage() {
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// EMBEDDED SHARE POSTER SECTION (MONOCHROME LIQUID GLASS CANVAS)
-// ────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Embedded Share Replay Card Component (HTML5 Canvas 1080x1350 Specular Titanium)
+// ─────────────────────────────────────────────────────────────────────────────
 function SharePosterSection({
   report,
   onShowToast,
@@ -809,10 +1386,10 @@ function SharePosterSection({
   report: PeriodReport;
   onShowToast: (msg: string) => void;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Generate pure monochrome titanium poster on 1080x1350 canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -822,25 +1399,18 @@ function SharePosterSection({
     canvas.width = 1080;
     canvas.height = 1350;
 
-    // Dark Titanium Backdrop
-    const bgGradient = ctx.createLinearGradient(0, 0, 1080, 1350);
-    bgGradient.addColorStop(0, "#080910");
-    bgGradient.addColorStop(0.5, "#0f111a");
-    bgGradient.addColorStop(1, "#05060a");
-    ctx.fillStyle = bgGradient;
+    // Background Titanium Dark Gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1350);
+    bgGrad.addColorStop(0, "#07080f");
+    bgGrad.addColorStop(0.5, "#0e111a");
+    bgGrad.addColorStop(1, "#07080f");
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, 1080, 1350);
 
-    // Subtle Monochromatic Specular Lighting
-    const drawSpecularGlow = (x: number, y: number, r: number, alpha: number) => {
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-      g.addColorStop(1, "transparent");
-      ctx.fillStyle = g;
-      ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    };
-
-    drawSpecularGlow(900, 200, 480, 0.08);
-    drawSpecularGlow(200, 1150, 480, 0.06);
+    // Specular Titanium Card Border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(36, 36, 1080 - 72, 1350 - 72);
 
     // Header Branding
     ctx.fillStyle = "#ffffff";
@@ -848,64 +1418,76 @@ function SharePosterSection({
     ctx.fillText("MUSICKU REPLAY", 80, 130);
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-    ctx.font = "600 28px monospace";
-    ctx.fillText(report.periodLabel.toUpperCase(), 80, 180);
+    ctx.font = "600 24px monospace";
+    ctx.fillText(report.periodLabel.toUpperCase(), 80, 175);
 
-    // Liquid Glass Container
+    // Inner Glass Card Frame
     ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
-    ctx.lineWidth = 3;
-    ctx.roundRect(80, 240, 920, 870, 44);
+    ctx.beginPath();
+    ctx.roundRect(80, 230, 920, 920, 36);
     ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Total Minutes Block
-    ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
-    ctx.font = "bold 24px monospace";
-    ctx.fillText("TOTAL LISTENING TIME", 140, 320);
+    // Total Minutes
+    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.font = "bold 20px monospace";
+    ctx.fillText("TOTAL LISTENING TIME", 140, 310);
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 84px sans-serif";
-    ctx.fillText(`${report.totalMinutes.toLocaleString()} MINS`, 140, 410);
+    ctx.fillText(`${report.totalMinutes.toLocaleString()} MINS`, 140, 400);
 
-    // #1 Track Info
+    // #1 Track Spotlight
     if (report.topTrack) {
       ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
-      ctx.font = "bold 22px monospace";
-      ctx.fillText("#1 TOP TRACK", 140, 500);
+      ctx.font = "bold 20px monospace";
+      ctx.fillText("#1 TOP TRACK", 140, 480);
 
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 42px sans-serif";
-      ctx.fillText(report.topTrack.name.slice(0, 28), 140, 560);
+      const trackName =
+        report.topTrack.name.length > 30
+          ? report.topTrack.name.substring(0, 28) + "..."
+          : report.topTrack.name;
+      ctx.fillText(trackName, 140, 535);
 
-      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-      ctx.font = "600 30px sans-serif";
-      ctx.fillText(report.topTrack.artistName, 140, 610);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.font = "500 26px sans-serif";
+      ctx.fillText(report.topTrack.artistName, 140, 580);
     }
 
     // Top 5 Playlist
     ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
     ctx.font = "bold 22px monospace";
-    ctx.fillText("TOP 5 PLAYLIST:", 140, 710);
+    ctx.fillText("TOP 5 PLAYLIST:", 140, 680);
 
     report.topTracks.slice(0, 5).forEach((t, i) => {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "600 26px sans-serif";
-      ctx.fillText(`${i + 1}. ${t.name.slice(0, 28)} - ${t.artistName.slice(0, 16)}`, 140, 765 + i * 48);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.font = "600 24px sans-serif";
+      const line = `${i + 1}. ${t.name} - ${t.artistName}`;
+      const truncated = line.length > 46 ? line.substring(0, 43) + "..." : line;
+      ctx.fillText(truncated, 140, 730 + i * 44);
     });
 
-    // Persona Pill
-    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-    ctx.roundRect(140, 1020, 800, 64, 20);
+    // Listening Aura Capsule
+    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.beginPath();
+    ctx.roundRect(140, 970, 800, 70, 20);
     ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
     ctx.stroke();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 26px sans-serif";
-    ctx.fillText(`${report.aura.emoji} Listening Aura: ${report.aura.name}`, 170, 1062);
+    ctx.font = "bold 24px sans-serif";
+    ctx.fillText(
+      `${report.aura.emoji} Listening Aura: ${report.aura.name}`,
+      170,
+      1014
+    );
 
-    // Bottom Watermark
+    // Footer Watermark
     ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
     ctx.font = "600 24px monospace";
     ctx.fillText("musicku.app • Apple iOS 26 Audio Experience", 80, 1220);
@@ -913,7 +1495,7 @@ function SharePosterSection({
     setDataUrl(canvas.toDataURL("image/png"));
   }, [report]);
 
-  const handleDownload = () => {
+  const handleDownloadImage = () => {
     if (!dataUrl) return;
     const a = document.createElement("a");
     a.href = dataUrl;
@@ -926,12 +1508,11 @@ function SharePosterSection({
     const text = encodeURIComponent(
       `🎵 Raport Musicku Replay saya (${report.periodLabel}):\n` +
       `⏱️ Total Mendengarkan: ${report.totalMinutes} Menit\n` +
-      `🔥 Lagu #1: ${report.topTrack?.name} - ${report.topTrack?.artistName}\n` +
-      `👑 Artis #1: ${report.topArtist?.name}\n` +
-      `✨ Listening Persona: ${report.aura.name}\n\n` +
-      `Dengarkan musik favoritmu di musicku.app!`
+      `🔥 Lagu #1: ${report.topTrack?.name || "Belum ada"} - ${report.topTrack?.artistName || ""}\n` +
+      `✨ Listening Aura: ${report.aura.name} (${report.aura.emoji})\n\n` +
+      `Cek musik favoritmu di: https://musicku.app/replay`
     );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
   };
 
   const handleNativeShare = async () => {
@@ -945,65 +1526,71 @@ function SharePosterSection({
         await navigator.share({
           files: [file],
           title: `Musicku Replay • ${report.periodLabel}`,
-          text: `Raport musik saya di Musicku Replay! Lagu #1: ${report.topTrack?.name}`,
+          text: `Raport musik saya di Musicku Replay! Lagu #1: ${report.topTrack?.name || ""}`,
         });
         onShowToast("Berhasil membagikan poster!");
       } else {
-        handleDownload();
+        handleDownloadImage();
       }
     } catch {
-      handleDownload();
+      handleDownloadImage();
     }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row items-center gap-8 p-6 sm:p-8 rounded-[32px] glass-panel border border-white/15">
-      {/* Hidden 1080x1350 canvas */}
+    <div className="flex flex-col lg:flex-row items-center gap-8 py-4">
+      {/* Offscreen Canvas for Rendering */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Live Poster Card Preview */}
-      <div className="w-full max-w-xs sm:max-w-sm aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border border-white/20 bg-black flex-shrink-0">
+      {/* Poster Preview Card */}
+      <div className="relative w-64 sm:w-72 aspect-[4/5] rounded-[28px] overflow-hidden glass-panel border-2 border-white/20 shadow-2xl flex-shrink-0">
         {dataUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={dataUrl} alt="Replay Poster Card" className="w-full h-full object-cover" />
         )}
       </div>
 
-      {/* Share Actions Column */}
-      <div className="flex-1 text-center lg:text-left flex flex-col justify-between gap-5">
+      {/* Action Controls */}
+      <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-4 flex-1">
         <div>
           <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400">
-            Bagikan Pencapaian Musikmu
+            Bagikan Raport
           </span>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
             Share Replay Card
           </h3>
           <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-md">
-            Ekspor poster kartu beresolusi tinggi (4:5 Portrait) bergaya iOS 26 Liquid Glass untuk dibagikan ke WhatsApp, Instagram Story, atau simpan ke galeri perangkatmu.
+            Pamerkan statistik mendengarkan musikmu ke WhatsApp, Instagram Story, atau simpan poster resolusi tinggi (1080x1350) ke perangkatmu.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        {/* Share Buttons */}
+        <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 w-full mt-2">
+          {/* WhatsApp Button */}
           <button
             onClick={handleShareWhatsApp}
-            className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 transition-all cursor-pointer shadow-lg active:scale-95"
+            className="px-5 py-2.5 rounded-full bg-[#25D366] text-black font-bold text-xs hover:bg-[#20bd5a] active:scale-95 transition-all shadow-lg flex items-center gap-2 cursor-pointer"
           >
-            Bagikan ke WhatsApp
+            <MessageCircle className="w-4 h-4 fill-current" />
+            <span>WhatsApp</span>
           </button>
 
+          {/* Instagram / System Share Button */}
           <button
             onClick={handleNativeShare}
-            className="w-full sm:w-auto px-6 py-3 rounded-2xl glass-card hover:bg-white/15 text-white font-bold text-xs border border-white/20 transition-all cursor-pointer shadow-md active:scale-95"
+            className="px-5 py-2.5 rounded-full bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-200 active:scale-95 transition-all shadow-lg flex items-center gap-2 cursor-pointer"
           >
-            Instagram / Share
+            <Share2 className="w-4 h-4" />
+            <span>Bagikan Poster</span>
           </button>
 
+          {/* Download PNG Button */}
           <button
-            onClick={handleDownload}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl glass-card hover:bg-white/15 text-zinc-300 hover:text-white font-semibold text-xs border border-white/15 transition-all cursor-pointer"
+            onClick={handleDownloadImage}
+            className="px-5 py-2.5 rounded-full glass-card hover:bg-white/15 text-white font-bold text-xs active:scale-95 transition-all border border-white/20 flex items-center gap-2 cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>Unduh PNG</span>
+            <span>Download PNG</span>
           </button>
         </div>
       </div>

@@ -24,6 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="h-screen h-[100dvh] w-screen overflow-hidden relative select-none bg-[#07080f] text-white">
         <AmbientBackground />
         {children}
+        <PlayerFooter />
       </div>
     );
   }

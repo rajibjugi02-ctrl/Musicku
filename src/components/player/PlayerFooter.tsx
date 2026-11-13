@@ -1,29 +1,33 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import PlayerBar from "./PlayerBar";
 import MobileMiniPlayer from "./MobileMiniPlayer";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useReplayStore } from "@/store/useReplayStore";
 
 /**
- * PlayerFooter coordinates the audio player display across screen breakpoints
- * and powers the background listening telemetry for Musicku Replay.
+ * PlayerFooter coordinates audio playback presentation across breakpoints
+ * and continuously records listening telemetry for Musicku Replay in the background.
  */
 export default function PlayerFooter() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const recordListening = useReplayStore((s) => s.recordListening);
+  const pathname = usePathname();
+  const isReplayPage = pathname.startsWith("/replay");
 
   const accumulatedSecRef = useRef(0);
   const lastActiveTrackRef = useRef(currentTrack);
 
-  // Background listening telemetry: records active playback every 5 seconds
+  // Reset session counter when changing tracks
   useEffect(() => {
     lastActiveTrackRef.current = currentTrack;
     accumulatedSecRef.current = 0;
   }, [currentTrack?.id]);
 
+  // Background listening telemetry: records active playback every 5 seconds
   useEffect(() => {
     if (!isPlaying || !currentTrack) return;
 
@@ -34,6 +38,11 @@ export default function PlayerFooter() {
 
     return () => clearInterval(interval);
   }, [isPlaying, currentTrack, recordListening]);
+
+  // When on Replay page, keep background telemetry active but do not render overlapping player chrome
+  if (isReplayPage) {
+    return null;
+  }
 
   return (
     <>
@@ -47,4 +56,3 @@ export default function PlayerFooter() {
     </>
   );
 }
-
