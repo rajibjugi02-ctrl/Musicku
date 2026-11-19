@@ -76,69 +76,38 @@ function evaluatePeriodLock(
     const targetMonth = parseInt(mStr, 10);
     const monthLabel = MONTH_NAMES[targetMonth - 1] || mStr;
 
-    // Future month: locked
+    // 1. Future month: Locked until 1st of target month
     if (targetYear > currentYear || (targetYear === currentYear && targetMonth > currentMonth)) {
+      const unlockDate = new Date(targetYear, targetMonth - 1, 1);
+      const diffMs = unlockDate.getTime() - now.getTime();
+      const daysRemaining = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
       return {
         isLocked: true,
         isEmpty: true,
-        title: "Bulan Belum Dimulai",
-        description: `Aktivitas mendengarkan untuk ${monthLabel} ${targetYear} belum dimulai.`,
-        daysRemaining: 0,
+        title: `Terkunci — Terbuka 1 ${monthLabel}`,
+        description: `Raport bulanan ${monthLabel} ${targetYear} belum dibuka. Raport akan terbuka otomatis saat kalender memasuki tanggal 1 ${monthLabel} ${targetYear}.`,
+        daysRemaining,
         unlockDateStr: `1 ${monthLabel} ${targetYear}`,
       };
     }
 
-    // Current month: locked until the last 2 days of the month (e.g. 29th or 30th/31st)
-    if (targetYear === currentYear && targetMonth === currentMonth) {
-      const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
-      const unlockDay = Math.max(1, daysInMonth - 1);
-
-      if (currentDay < unlockDay) {
-        const daysRemaining = unlockDay - currentDay;
-        return {
-          isLocked: true,
-          isEmpty: totalMinutes === 0 && totalTracks === 0,
-          title: `Locked Until End of Month (${daysInMonth} ${monthLabel})`,
-          description: `Raport bulanan ${monthLabel} ${targetYear} hanya terbuka di akhir bulan. Aktivitas mendengarkanmu sedang direkam secara real-time.`,
-          daysRemaining,
-          unlockDateStr: `${unlockDay}–${daysInMonth} ${monthLabel} ${targetYear}`,
-        };
-      }
-
-      // If already at end of month but 0 plays
-      if (totalTracks === 0 || totalMinutes === 0) {
-        return {
-          isLocked: false,
-          isEmpty: true,
-          title: "Belum Ada Aktivitas Mendengarkan",
-          description: `0 Menit — Kamu belum memutar lagu di ${monthLabel} ${targetYear}. Putar lagu favoritmu sekarang untuk mulai menyusun raport musik!`,
-          daysRemaining: 0,
-          unlockDateStr: "",
-        };
-      }
-
-      return {
-        isLocked: false,
-        isEmpty: false,
-        title: "",
-        description: "",
-        daysRemaining: 0,
-        unlockDateStr: "",
-      };
-    }
-
-    // Past month (already ended): unlocked if has data, empty if 0
+    // 2. Current or Past month with zero listening activity
     if (totalTracks === 0 || totalMinutes === 0) {
+      const isPastMonth = targetYear < currentYear || (targetYear === currentYear && targetMonth < currentMonth);
       return {
-        isLocked: false,
+        isLocked: isPastMonth,
         isEmpty: true,
-        title: "0 Menit — Tidak Ada Aktivitas",
-        description: `Belum ada riwayat aktivitas mendengarkan di bulan ${monthLabel} ${targetYear}.`,
+        title: isPastMonth ? `Terkunci — Tidak Ada Data` : "Belum Ada Aktivitas Mendengarkan",
+        description: isPastMonth
+          ? `Tidak ada riwayat pemutaran musik di ${monthLabel} ${targetYear}. Raport terkunci karena belum memiliki riwayat dengar.`
+          : `0 Menit — Kamu belum memutar lagu di ${monthLabel} ${targetYear}. Putar lagu favoritmu sekarang untuk mulai menyusun raport musik!`,
         daysRemaining: 0,
         unlockDateStr: "",
       };
     }
 
+    // 3. Active unlocked month with listening telemetry
     return {
       isLocked: false,
       isEmpty: false,
@@ -232,6 +201,7 @@ export default function ReplayPage() {
     activePeriodType,
     selectedMonth,
     selectedYear,
+    records,
     setActivePeriodType,
     setSelectedMonth,
     setSelectedYear,
@@ -262,6 +232,21 @@ export default function ReplayPage() {
   const now = new Date();
   const currentYearInt = now.getFullYear();
   const currentMonthInt = now.getMonth() + 1;
+
+  const isMonthLocked = useCallback(
+    (monthNum: number, monthKey: string) => {
+      // Future month: locked until 1st of that month
+      if (monthNum > currentMonthInt) return true;
+      // Past month: locked if there is no listening telemetry recorded
+      if (monthNum < currentMonthInt) {
+        const hasHistory = (records || []).some((r) => r.yearMonth === monthKey);
+        return !hasHistory;
+      }
+      // Current month: open for active playback
+      return false;
+    },
+    [currentMonthInt, records]
+  );
 
   // Force current year only (remove legacy 2025)
   useEffect(() => {
@@ -485,21 +470,37 @@ export default function ReplayPage() {
             {/* Month / Year Selector Capsule */}
             <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {activePeriodType === "month" ? (
-                MONTH_NAMES.slice(0, currentMonthInt).map((name, idx) => {
-                  const monthKey = `${currentYearInt}-${String(idx + 1).padStart(2, "0")}`;
+                MONTH_NAMES.map((name, idx) => {
+                  const monthNum = idx + 1;
+                  const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
                   const isSelected = selectedMonth === monthKey;
+                  const isFuture = monthNum > currentMonthInt;
+                  const isLocked = isMonthLocked(monthNum, monthKey);
+
                   return (
                     <button
                       key={monthKey}
+                      type="button"
+                      disabled={isLocked}
                       onClick={() => setSelectedMonth(monthKey)}
+                      title={
+                        isFuture
+                          ? `Terkunci hingga 1 ${name} ${currentYearInt}`
+                          : isLocked
+                          ? `Terkunci — Belum ada riwayat dengar di ${name} ${currentYearInt}`
+                          : name
+                      }
                       className={cn(
-                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer",
+                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1",
                         isSelected
                           ? "bg-white text-zinc-950 font-bold shadow-sm"
-                          : "glass-card text-zinc-400 hover:text-white"
+                          : isLocked
+                          ? "glass-card text-zinc-500 opacity-50 cursor-not-allowed"
+                          : "glass-card text-zinc-400 hover:text-white cursor-pointer"
                       )}
                     >
-                      {name}
+                      {isLocked && <Lock className="w-2.5 h-2.5 text-zinc-500 flex-shrink-0" />}
+                      <span>{name}</span>
                     </button>
                   );
                 })
@@ -673,21 +674,37 @@ export default function ReplayPage() {
             {/* Month / Year Selector Capsule */}
             <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {activePeriodType === "month" ? (
-                MONTH_NAMES.slice(0, currentMonthInt).map((name, idx) => {
-                  const monthKey = `${currentYearInt}-${String(idx + 1).padStart(2, "0")}`;
+                MONTH_NAMES.map((name, idx) => {
+                  const monthNum = idx + 1;
+                  const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
                   const isSelected = selectedMonth === monthKey;
+                  const isFuture = monthNum > currentMonthInt;
+                  const isLocked = isMonthLocked(monthNum, monthKey);
+
                   return (
                     <button
                       key={monthKey}
+                      type="button"
+                      disabled={isLocked}
                       onClick={() => setSelectedMonth(monthKey)}
+                      title={
+                        isFuture
+                          ? `Terkunci hingga 1 ${name} ${currentYearInt}`
+                          : isLocked
+                          ? `Terkunci — Belum ada riwayat dengar di ${name} ${currentYearInt}`
+                          : name
+                      }
                       className={cn(
-                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer",
+                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1",
                         isSelected
                           ? "bg-white text-zinc-950 font-bold shadow-sm"
-                          : "glass-card text-zinc-400 hover:text-white"
+                          : isLocked
+                          ? "glass-card text-zinc-500 opacity-50 cursor-not-allowed"
+                          : "glass-card text-zinc-400 hover:text-white cursor-pointer"
                       )}
                     >
-                      {name}
+                      {isLocked && <Lock className="w-2.5 h-2.5 text-zinc-500 flex-shrink-0" />}
+                      <span>{name}</span>
                     </button>
                   );
                 })
@@ -1105,21 +1122,37 @@ export default function ReplayPage() {
           {/* Month or Year Filter Capsule */}
           <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {activePeriodType === "month" ? (
-              MONTH_NAMES.slice(0, currentMonthInt).map((name, idx) => {
-                const monthKey = `${currentYearInt}-${String(idx + 1).padStart(2, "0")}`;
+              MONTH_NAMES.map((name, idx) => {
+                const monthNum = idx + 1;
+                const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
                 const isSelected = selectedMonth === monthKey;
+                const isFuture = monthNum > currentMonthInt;
+                const isLocked = isMonthLocked(monthNum, monthKey);
+
                 return (
                   <button
                     key={monthKey}
+                    type="button"
+                    disabled={isLocked}
                     onClick={() => setSelectedMonth(monthKey)}
+                    title={
+                      isFuture
+                        ? `Terkunci hingga 1 ${name} ${currentYearInt}`
+                        : isLocked
+                        ? `Terkunci — Belum ada riwayat dengar di ${name} ${currentYearInt}`
+                        : name
+                    }
                     className={cn(
-                      "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer",
+                      "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1",
                       isSelected
                         ? "bg-white text-zinc-950 font-bold shadow-sm"
-                        : "glass-card text-zinc-400 hover:text-white"
+                        : isLocked
+                        ? "glass-card text-zinc-500 opacity-50 cursor-not-allowed"
+                        : "glass-card text-zinc-400 hover:text-white cursor-pointer"
                     )}
                   >
-                    {name}
+                    {isLocked && <Lock className="w-2.5 h-2.5 text-zinc-500 flex-shrink-0" />}
+                    <span>{name}</span>
                   </button>
                 );
               })

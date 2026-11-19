@@ -1,4 +1,5 @@
 import type { SpotifyTrack, SpotifyArtist, SpotifyAlbum, PlayerTrack } from "@/types/music";
+import { isInstrumentalTrack } from "@/lib/utils";
 
 interface ITunesTrackResult {
   trackId: number;
@@ -92,6 +93,7 @@ function itunesToSpotifyTrack(item: ITunesTrackResult): SpotifyTrack {
       release_date: "2024",
     },
     external_urls: { spotify: `https://music.apple.com/song/${item.trackId}` },
+    isInstrumental: isInstrumentalTrack(item.trackName, item.collectionName),
   };
 }
 

@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 import { Play, Pause, SkipForward, Heart, Loader2 } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
+import { useLyricsStore } from "@/store/useLyricsStore";
 import { useUIStore } from "@/store/useUIStore";
 import MobileNowPlayingSheet from "./MobileNowPlayingSheet";
-import { cn } from "@/lib/utils";
+import { cn, isInstrumentalTrack } from "@/lib/utils";
 
 export default function MobileMiniPlayer() {
   const {
@@ -26,6 +27,13 @@ export default function MobileMiniPlayer() {
   const router = useRouter();
 
   if (!currentTrack) return null;
+
+  const isLyricsInstrumental = useLyricsStore((s) => s.isInstrumental);
+  const isInstrumental = Boolean(
+    currentTrack?.isInstrumental ||
+    isInstrumentalTrack(currentTrack?.name, currentTrack?.albumName) ||
+    isLyricsInstrumental
+  );
 
   const trackDuration = duration || currentTrack.duration || 180000;
   const pct = Math.min(100, Math.max(0, (position / trackDuration) * 100));
@@ -76,6 +84,11 @@ export default function MobileMiniPlayer() {
                 <p className="text-xs font-bold text-zinc-900 dark:text-white truncate leading-tight">
                   {currentTrack.name}
                 </p>
+                {isInstrumental && (
+                  <span className="text-[8px] font-mono font-bold bg-black/10 dark:bg-white/20 text-zinc-800 dark:text-white/90 px-1 rounded leading-none flex-shrink-0">
+                    INST
+                  </span>
+                )}
                 <span className="text-[8px] font-bold bg-black/5 dark:bg-white/20 text-zinc-700 dark:text-white/90 px-1 rounded leading-none flex-shrink-0">
                   E
                 </span>

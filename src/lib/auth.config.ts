@@ -2,17 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Spotify from "next-auth/providers/spotify";
 
-const SPOTIFY_SCOPES = [
-  "user-read-email",
-  "user-read-private",
-  "streaming",
-  "user-read-playback-state",
-  "user-modify-playback-state",
-  "user-read-currently-playing",
-  "playlist-read-private",
-  "user-top-read",
-  "user-read-recently-played",
-].join(" ");
+// Lightweight standard Spotify scope to guarantee frictionless OAuth without dev-quota restrictions
+const SPOTIFY_SCOPES = "user-read-email user-read-private";
 
 const googleClientId = (
   process.env.GOOGLE_CLIENT_ID ||
@@ -39,7 +30,11 @@ const spotifyClientSecret = (
 ).trim();
 
 export const authConfig: NextAuthConfig = {
-  secret: (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "musicku_super_secure_random_production_secret_key_2026_x89q").trim(),
+  secret: (
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "musicku_super_secure_random_production_secret_key_2026_x89q"
+  ).trim(),
   trustHost: true,
   pages: {
     signIn: "/login",
@@ -60,6 +55,16 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
+    redirect({ url, baseUrl }) {
+      // Prevents blank screens and ensures redirects always return safely to app home
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // Fall back to baseUrl
+      }
+      return baseUrl;
+    },
     jwt({ token, account, user }) {
       if (account?.provider === "spotify") {
         token.spotifyAccessToken = account.access_token;
@@ -86,4 +91,3 @@ export const authConfig: NextAuthConfig = {
     },
   },
 };
-

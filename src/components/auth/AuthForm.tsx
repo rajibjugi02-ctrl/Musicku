@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 
 interface AuthFormProps {
@@ -19,6 +20,26 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "spotify" | null>(null);
+
+  const searchParams = useSearchParams();
+  const oauthError = searchParams?.get("error");
+
+  // Handle OAuth callback errors gracefully to prevent blank white screens
+  useEffect(() => {
+    if (!oauthError) return;
+
+    if (oauthError === "OAuthCallbackError" || oauthError === "Callback") {
+      setError("Gagal menghubungkan sesi Spotify/Google. Silakan klik tombol di bawah untuk mencoba kembali.");
+    } else if (oauthError === "OAuthSignin" || oauthError === "OAuthCreateAccount") {
+      setError("Tidak dapat memulai otentikasi Spotify. Pastikan izin akses diberikan.");
+    } else if (oauthError === "AccessDenied") {
+      setError("Login Spotify dibatalkan atau izin tidak disetujui.");
+    } else if (oauthError === "Configuration") {
+      setError("Konfigurasi server OAuth sedang diperbarui. Silakan gunakan login Email.");
+    } else {
+      setError(`Terjadi kendala saat login (${oauthError}). Silakan coba lagi.`);
+    }
+  }, [oauthError]);
 
   const switchMode = (newMode: "signin" | "register") => {
     setError("");
@@ -41,14 +62,14 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         });
 
         if (res?.error) {
-          setError("Invalid email address or password. Please try again.");
+          setError("Email atau kata sandi tidak sesuai. Silakan coba lagi.");
           setLoading(false);
         } else {
           // Hard redirect to propagate session cookies cleanly to middleware
           window.location.href = "/";
         }
       } catch {
-        setError("An unexpected error occurred during sign in.");
+        setError("Terjadi kesalahan tidak terduga saat masuk.");
         setLoading(false);
       }
     } else {
@@ -67,7 +88,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         const data = await res.json().catch(() => null);
 
         if (!res.ok) {
-          setError(data?.error || "Registration failed. Please try again.");
+          setError(data?.error || "Pendaftaran gagal. Silakan coba lagi.");
           setLoading(false);
           return;
         }
@@ -80,8 +101,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         });
 
         if (signInRes?.error) {
-          // Fallback if auto-login encountered an error
-          setError("Account created! Please sign in with your password.");
+          setError("Akun berhasil dibuat! Silakan masuk dengan kata sandi kamu.");
           setMode("signin");
           setLoading(false);
           return;
@@ -102,14 +122,16 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
 
         window.location.href = "/";
       } catch {
-        setError("Unable to connect to registration server. Please try again.");
+        setError("Tidak dapat terhubung ke server pendaftaran. Silakan coba lagi.");
         setLoading(false);
       }
     }
   };
 
+  // Direct OAuth trigger with auto-redirect to '/' upon success
   const handleOAuth = (provider: "google" | "spotify") => {
     setOauthLoading(provider);
+    setError("");
     signIn(provider, { callbackUrl: "/" });
   };
 
@@ -117,7 +139,8 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
     <div className="w-full max-w-sm relative z-10 select-none">
       {/* Brand Header */}
       <div className="flex items-center justify-center gap-2.5 mb-7">
-        <div className="w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg border border-white/20 bg-black shadow-cyan-500/10">
+        <div className="w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg border border-white/20 bg-black">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Musicku" className="w-full h-full object-cover" />
         </div>
         <div>
@@ -137,12 +160,12 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
             <h1 className="text-xl font-bold text-white mb-1 tracking-tight">
-              {mode === "signin" ? "Welcome Back" : "Create Account"}
+              {mode === "signin" ? "Selamat Datang" : "Buat Akun Baru"}
             </h1>
             <p className="text-xs text-zinc-400 mb-6">
               {mode === "signin"
-                ? "Sign in to continue your music journey"
-                : "Start streaming with real-time synced lyrics"}
+                ? "Masuk untuk melanjutkan streaming musik favoritmu"
+                : "Mulai dengarkan musik dengan lirik sinkron real-time"}
             </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
@@ -153,7 +176,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Full Name"
+                    placeholder="Nama Lengkap"
                     className="w-full h-11 pl-10 pr-3 rounded-2xl glass-card text-white placeholder:text-zinc-500 text-xs focus:outline-none focus:border-white/30 transition-all"
                   />
                 </div>
@@ -165,7 +188,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
+                  placeholder="Alamat Email"
                   required
                   className="w-full h-11 pl-10 pr-3 rounded-2xl glass-card text-white placeholder:text-zinc-500 text-xs focus:outline-none focus:border-white/30 transition-all"
                 />
@@ -177,7 +200,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "signin" ? "Password" : "Password (min. 6 characters)"}
+                  placeholder={mode === "signin" ? "Kata Sandi" : "Kata Sandi (minimal 6 karakter)"}
                   required
                   minLength={mode === "register" ? 6 : undefined}
                   className="w-full h-11 pl-10 pr-10 rounded-2xl glass-card text-white placeholder:text-zinc-500 text-xs focus:outline-none focus:border-white/30 transition-all"
@@ -187,15 +210,16 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                   onClick={() => setShowPassword((prev) => !prev)}
                   tabIndex={-1}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors cursor-pointer p-1"
-                  title={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
 
               {error && (
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs text-center leading-relaxed">
-                  {error}
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2 leading-relaxed">
+                  <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
 
@@ -210,11 +234,11 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                 <span>
                   {loading
                     ? mode === "signin"
-                      ? "Signing in..."
-                      : "Creating Account..."
+                      ? "Sedang Masuk..."
+                      : "Membuat Akun..."
                     : mode === "signin"
-                    ? "Sign In"
-                    : "Create Account"}
+                    ? "Masuk"
+                    : "Daftar Akun"}
                 </span>
               </motion.button>
             </form>
@@ -222,7 +246,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
             {/* OR Divider */}
             <div className="flex items-center gap-3 my-5">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">or</span>
+              <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">atau</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
@@ -258,7 +282,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                     />
                   </svg>
                 )}
-                <span>Continue with Google</span>
+                <span>Lanjutkan dengan Google</span>
               </motion.button>
 
               {/* Spotify OAuth Button */}
@@ -276,7 +300,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.498 17.306c-.218.358-.684.47-1.042.252-2.854-1.744-6.446-2.14-10.68-1.173-.41.093-.815-.164-.908-.574-.093-.41.164-.815.574-.908 4.636-1.059 8.608-.614 11.804 1.341.358.218.47.684.252 1.062zm1.467-3.26c-.274.446-.86.588-1.306.314-3.268-2.01-8.248-2.593-12.112-1.42-.497.151-1.026-.134-1.177-.63-.151-.497.134-1.026.63-1.177 4.417-1.34 9.907-.69 13.651 1.607.446.274.588.86.314 1.306zm.126-3.41c-3.918-2.327-10.377-2.542-14.126-1.403-.6.182-1.242-.164-1.424-.764-.182-.6.164-1.242.764-1.424 4.306-1.307 11.436-1.057 15.939 1.616.538.319.715 1.018.396 1.556-.319.538-1.018.715-1.549.419z" />
                   </svg>
                 )}
-                <span>Continue with Spotify</span>
+                <span>Lanjutkan dengan Spotify</span>
               </motion.button>
             </div>
 
@@ -284,24 +308,24 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
             <p className="text-center text-xs text-zinc-400 mt-6">
               {mode === "signin" ? (
                 <>
-                  No account yet?{" "}
+                  Belum punya akun?{" "}
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
                     className="text-white font-medium hover:underline transition-colors cursor-pointer"
                   >
-                    Create One
+                    Daftar Sekarang
                   </button>
                 </>
               ) : (
                 <>
-                  Already have an account?{" "}
+                  Sudah punya akun?{" "}
                   <button
                     type="button"
                     onClick={() => switchMode("signin")}
                     className="text-white font-medium hover:underline transition-colors cursor-pointer"
                   >
-                    Sign In
+                    Masuk
                   </button>
                 </>
               )}
@@ -312,4 +336,3 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
     </div>
   );
 }
-

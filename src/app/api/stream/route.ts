@@ -117,15 +117,34 @@ function scoreStreamCandidate(
     score += 450;
   }
 
-  // 4. Filter non-studio elements unless specified in clean title
+  // 4. Strict Instrumental Blacklist: Disqualify karaoke, instrumental, backing tracks unless requested
+  const isTargetInstrumental = cleanTitleLower.includes("instrumental");
+  const INSTRUMENTAL_BLACKLIST = [
+    "instrumental",
+    "karaoke",
+    "no vocals",
+    "off vocal",
+    "minus one",
+    "backing track",
+    "type beat",
+  ];
+
+  if (!isTargetInstrumental) {
+    const hasBlacklistKeyword = INSTRUMENTAL_BLACKLIST.some(
+      (kw) => titleLower.includes(kw) || authorLower.includes(kw)
+    );
+    if (hasBlacklistKeyword) {
+      return -999999;
+    }
+  }
+
+  // 5. Filter non-studio elements unless specified in clean title
   const nonStudioKeywords = [
     { word: "music video", penalty: 400 },
     { word: "official video", penalty: 400 },
     { word: "live", penalty: 600 },
     { word: "remix", penalty: 500 },
     { word: "cover", penalty: 700 },
-    { word: "karaoke", penalty: 700 },
-    { word: "instrumental", penalty: 600 },
     { word: "sped up", penalty: 600 },
     { word: "slowed", penalty: 600 },
     { word: "acoustic", penalty: 300 },
@@ -190,8 +209,12 @@ async function fetchFromYouTube(
         ),
       }));
 
-      scored.sort((a, b) => b.score - a.score);
-      const candidate = scored[0].video;
+      // Reject blacklisted instrumental/karaoke versions
+      const validScored = scored.filter((s) => s.score > -50000);
+      if (validScored.length === 0) continue;
+
+      validScored.sort((a, b) => b.score - a.score);
+      const candidate = validScored[0].video;
 
       const videoId = candidate.videoId;
       if (!videoId) continue;
@@ -295,8 +318,14 @@ async function fetchFromJioSaavn(
       ),
     }));
 
-    scored.sort((a, b) => b.score - a.score);
-    const candidate = scored[0].song;
+    // Reject blacklisted instrumental/karaoke versions
+    const validScored = scored.filter((s) => s.score > -50000);
+    if (validScored.length === 0) {
+      throw new Error("No non-instrumental songs in Saavn cluster");
+    }
+
+    validScored.sort((a, b) => b.score - a.score);
+    const candidate = validScored[0].song;
     const durationSec = Number(candidate.duration || targetDurationSec || 0);
     // Strict duration validation: reject preview snippets < 60s
     if (durationSec > 0 && durationSec < 60) {

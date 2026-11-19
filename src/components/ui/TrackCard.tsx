@@ -8,7 +8,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
 import type { PlayerTrack } from "@/types/music";
-import { cn, getOptimizedImageUrl } from "@/lib/utils";
+import { cn, getOptimizedImageUrl, isInstrumentalTrack } from "@/lib/utils";
 
 interface Props {
   track: PlayerTrack;
@@ -26,6 +26,7 @@ export default function TrackCard({ track, queue, className, carousel = false }:
 
   const isActive = currentTrack?.id === track.id;
   const isLiked = isTrackLiked(track.id);
+  const isInstrumental = Boolean(track.isInstrumental || isInstrumentalTrack(track.name, track.albumName));
 
   const handlePrewarm = () => {
     prefetchTrackStream(track);
@@ -119,6 +120,13 @@ export default function TrackCard({ track, queue, className, carousel = false }:
                 )}
               </div>
             </div>
+
+            {/* Glass Capsule Instrumental Badge */}
+            {isInstrumental && (
+              <span className="absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase glass-pill bg-black/60 dark:bg-black/60 text-white/95 border border-white/20 backdrop-blur-md shadow-sm">
+                INSTRUMENTAL
+              </span>
+            )}
           </div>
 
           {/* Text Below Artwork */}

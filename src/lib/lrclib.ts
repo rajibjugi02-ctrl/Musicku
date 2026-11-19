@@ -8,10 +8,16 @@ interface LrclibItem {
   duration?: number;
   syncedLyrics?: string | null;
   plainLyrics?: string | null;
+  instrumental?: boolean;
 }
 
-// In-memory cache for parsed lyrics (track+artist+duration -> LrcLine[])
-const lyricsCache = new Map<string, LrcLine[]>();
+export interface LyricsResult {
+  lines: LrcLine[];
+  isInstrumental: boolean;
+}
+
+// In-memory cache for parsed lyrics (track+artist+duration -> LyricsResult)
+const lyricsCache = new Map<string, LyricsResult>();
 
 /**
  * Sanitizes lyric text to remove extraneous trailing/leading pipes, cursor artifacts,
@@ -90,7 +96,7 @@ export async function fetchLyricsFromLRCLIB(
   track: string,
   artist: string,
   durationSec: number = 0
-): Promise<LrcLine[] | null> {
+): Promise<LyricsResult | null> {
   const roundedDur = Math.round(durationSec);
   const cacheKey = `${artist.toLowerCase()}:${track.toLowerCase()}:${roundedDur}`;
   if (lyricsCache.has(cacheKey)) {
@@ -113,12 +119,19 @@ export async function fetchLyricsFromLRCLIB(
 
         if (exactRes.ok) {
           const exactData: LrclibItem = await exactRes.json();
+          const isInstrumental = Boolean(exactData.instrumental);
           if (exactData.syncedLyrics && exactData.syncedLyrics.trim().length > 0) {
             const parsed = parseLrc(exactData.syncedLyrics);
             if (parsed.length > 0) {
-              lyricsCache.set(cacheKey, parsed);
-              return parsed;
+              const result = { lines: parsed, isInstrumental };
+              lyricsCache.set(cacheKey, result);
+              return result;
             }
+          }
+          if (isInstrumental) {
+            const result = { lines: [], isInstrumental: true };
+            lyricsCache.set(cacheKey, result);
+            return result;
           }
         }
       } catch {
@@ -171,8 +184,9 @@ export async function fetchLyricsFromLRCLIB(
         if (best.syncedLyrics) {
           const parsed = parseLrc(best.syncedLyrics);
           if (parsed.length > 0) {
-            lyricsCache.set(cacheKey, parsed);
-            return parsed;
+            const result = { lines: parsed, isInstrumental: Boolean(best.instrumental) };
+            lyricsCache.set(cacheKey, result);
+            return result;
           }
         }
       }
@@ -200,8 +214,9 @@ export async function fetchLyricsFromLRCLIB(
             bestPlain.duration || roundedDur || 180
           );
           if (parsed.length > 0) {
-            lyricsCache.set(cacheKey, parsed);
-            return parsed;
+            const result = { lines: parsed, isInstrumental: Boolean(bestPlain.instrumental) };
+            lyricsCache.set(cacheKey, result);
+            return result;
           }
         }
       }

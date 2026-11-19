@@ -71,7 +71,8 @@ export const useLyricsStore = create<LyricsState>((set, get) => ({
       if (res.ok) {
         const data = await res.json();
         const lines: LrcLine[] = data.lines || [];
-        set({ lines, isLoading: false, activeLine: -1 });
+        const isInstrumental: boolean = Boolean(data.isInstrumental);
+        set({ lines, isLoading: false, activeLine: -1, isInstrumental });
       } else {
         set({ lines: [], isLoading: false });
       }

@@ -31,7 +31,7 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import { useUIStore } from "@/store/useUIStore";
 import TrackActionMenu from "./TrackActionMenu";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
-import { cn } from "@/lib/utils";
+import { cn, isInstrumentalTrack } from "@/lib/utils";
 import type { PlayerTrack } from "@/types/music";
 
 function formatTime(ms: number) {
@@ -72,9 +72,15 @@ export default function MobileNowPlayingSheet() {
   } = usePlayerStore();
 
   const { isMobilePlayerOpen, closeMobilePlayer } = useUIStore();
-  const { lines, activeLine } = useLyricsStore();
+  const { lines, activeLine, isInstrumental: isLyricsInstrumental } = useLyricsStore();
   const { isTrackLiked, toggleLikeTrack } = useLibraryStore();
   const router = useRouter();
+
+  const isInstrumental = Boolean(
+    currentTrack?.isInstrumental ||
+    isInstrumentalTrack(currentTrack?.name, currentTrack?.albumName) ||
+    isLyricsInstrumental
+  );
 
   const [mode, setMode] = useState<"artwork" | "lyrics" | "queue">("artwork");
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -239,6 +245,11 @@ export default function MobileNowPlayingSheet() {
                           LOSSLESS
                         </span>
                       ) : null}
+                      {isInstrumental && (
+                        <span className="flex-shrink-0 text-[9px] font-mono font-bold bg-white/15 text-white/90 border border-white/25 px-1.5 py-0.5 rounded leading-none">
+                          INSTRUMENTAL
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => {
@@ -294,9 +305,16 @@ export default function MobileNowPlayingSheet() {
                         <p className="text-sm font-bold text-white truncate leading-tight">
                           {currentTrack.name}
                         </p>
-                        <span className="text-[9px] font-bold bg-white/20 text-white/90 px-1 rounded leading-none">
-                          E
-                        </span>
+                        {currentTrack.explicit && (
+                          <span className="text-[9px] font-bold bg-white/20 text-white/90 px-1 rounded leading-none">
+                            E
+                          </span>
+                        )}
+                        {isInstrumental && (
+                          <span className="text-[9px] font-mono font-bold bg-white/15 text-white/90 px-1 rounded leading-none border border-white/20">
+                            INSTRUMENTAL
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => {
@@ -445,9 +463,16 @@ export default function MobileNowPlayingSheet() {
                         <p className="text-sm font-bold text-white truncate leading-tight">
                           {currentTrack.name}
                         </p>
-                        <span className="text-[9px] font-bold bg-white/20 text-white/90 px-1 rounded leading-none">
-                          E
-                        </span>
+                        {currentTrack.explicit && (
+                          <span className="text-[9px] font-bold bg-white/20 text-white/90 px-1 rounded leading-none">
+                            E
+                          </span>
+                        )}
+                        {isInstrumental && (
+                          <span className="text-[9px] font-mono font-bold bg-white/15 text-white/90 px-1 rounded leading-none border border-white/20">
+                            INSTRUMENTAL
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => {

@@ -5,6 +5,7 @@ export interface SpotifyTrack {
   duration_ms: number;
   preview_url: string | null;
   explicit: boolean;
+  isInstrumental?: boolean;
   artists: { id: string; name: string }[];
   album: {
     id: string;
@@ -50,5 +51,6 @@ export interface PlayerTrack {
   duration: number; // ms
   previewUrl: string | null;
   explicit: boolean;
+  isInstrumental?: boolean;
 }
 

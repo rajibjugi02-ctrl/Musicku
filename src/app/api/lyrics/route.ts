@@ -17,10 +17,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Track title is required" }, { status: 400 });
   }
 
-  const lines = await fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
+  const result = await fetchLyricsFromLRCLIB(trackName, artistName, durationSec);
 
   return NextResponse.json({
     success: true,
-    lines: lines || [],
+    lines: result?.lines || [],
+    isInstrumental: result?.isInstrumental || false,
   });
 }

@@ -28,8 +28,33 @@ export function getOptimizedImageUrl(url?: string | null, size = 300): string {
   return url;
 }
 
+export function isInstrumentalTrack(
+  name?: string,
+  albumName?: string,
+  lrcInstrumental?: boolean
+): boolean {
+  if (lrcInstrumental === true) return true;
+  const target = `${name || ""} ${albumName || ""}`.toLowerCase();
+  const keywords = [
+    "instrumental",
+    "karaoke",
+    "no vocals",
+    "off vocal",
+    "minus one",
+    "backing track",
+    "type beat",
+  ];
+  return keywords.some((kw) => target.includes(kw));
+}
+
 export function spotifyTrackToPlayerTrack(track: SpotifyTrack): PlayerTrack {
   const rawArt = track.album?.images?.[0]?.url || "";
+  const isInstrumental = isInstrumentalTrack(
+    track.name,
+    track.album?.name,
+    track.isInstrumental
+  );
+
   return {
     id: track.id,
     uri: track.uri,
@@ -40,5 +65,6 @@ export function spotifyTrackToPlayerTrack(track: SpotifyTrack): PlayerTrack {
     duration: track.duration_ms,
     previewUrl: track.preview_url,
     explicit: track.explicit,
+    isInstrumental,
   };
 }

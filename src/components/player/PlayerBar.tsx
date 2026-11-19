@@ -27,7 +27,7 @@ import { useLyricsStore } from "@/store/useLyricsStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useUIStore } from "@/store/useUIStore";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
-import { cn } from "@/lib/utils";
+import { cn, isInstrumentalTrack } from "@/lib/utils";
 
 function formatMs(ms: number) {
   if (!ms || isNaN(ms)) return "0:00";
@@ -58,6 +58,12 @@ export default function PlayerBar() {
   } = usePlayerStore();
 
   const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
+  const isLyricsInstrumental = useLyricsStore((s) => s.isInstrumental);
+  const isInstrumental = Boolean(
+    currentTrack?.isInstrumental ||
+    isInstrumentalTrack(currentTrack?.name, currentTrack?.albumName) ||
+    isLyricsInstrumental
+  );
   const {
     openMobilePlayer,
     isRightSidebarOpen,
@@ -171,6 +177,11 @@ export default function PlayerBar() {
                 <span className="inline-flex items-center gap-1 text-[9px] text-emerald-600 dark:text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                   <Sparkles className="w-2.5 h-2.5" />
                   Full Audio Stream
+                </span>
+              )}
+              {isInstrumental && (
+                <span className="inline-flex items-center text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-800 dark:text-white/90 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 px-1.5 py-0.5 rounded leading-none">
+                  INSTRUMENTAL
                 </span>
               )}
             </div>

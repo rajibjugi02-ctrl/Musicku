@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import PlayHistory from "@/components/home/PlayHistory";
+import OnRepeatSection from "@/components/home/OnRepeatSection";
 import SmartRecommendations from "@/components/home/SmartRecommendations";
 import DiscoverTracks from "@/components/home/DiscoverTracks";
 import DiscoverArtists from "@/components/home/DiscoverArtists";
@@ -12,7 +13,7 @@ export default function HomePage() {
       {/* Liquid Glass Hero Pill / Header */}
       <div className="glass-panel rounded-[28px] p-6 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 border border-black/[0.08] dark:border-white/[0.08]">
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-pill text-[11px] font-mono tracking-wider text-indigo-600 dark:text-indigo-300 mb-2.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-pill text-[11px] font-mono tracking-wider text-zinc-700 dark:text-zinc-300 mb-2.5">
             <Sparkles className="w-3.5 h-3.5" />
             <span>VISIONOS LIQUID AUDIO</span>
           </div>
@@ -24,14 +25,14 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Musicku Replay Highlight Pill */}
+        {/* Musicku Replay Highlight Pill - Apple iOS 26 Liquid Titanium Monochrome */}
         <Link href="/replay" className="relative z-10 flex-shrink-0">
-          <div className="group flex items-center gap-3.5 px-4 py-3 rounded-2xl glass-card bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-pink-500/15 hover:from-indigo-500/25 hover:to-pink-500/25 border border-indigo-500/25 dark:border-indigo-400/30 shadow-md transition-all cursor-pointer">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white shadow-sm group-hover:scale-108 transition-transform">
+          <div className="group flex items-center gap-3.5 px-4 py-3 rounded-2xl glass-card bg-zinc-900/5 dark:bg-white/[0.04] hover:bg-zinc-900/10 dark:hover:bg-white/[0.08] border border-black/10 dark:border-white/10 shadow-md transition-all cursor-pointer">
+            <div className="w-9 h-9 rounded-xl bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-300 block leading-tight">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 block leading-tight">
                 Raport Musik Kamu
               </span>
               <p className="text-xs font-bold text-zinc-900 dark:text-white mt-0.5 group-hover:underline">
@@ -45,6 +46,11 @@ export default function HomePage() {
       {/* 5 Last Played History (FIFO) */}
       <Suspense fallback={<SectionSkeleton />}>
         <PlayHistory />
+      </Suspense>
+
+      {/* On Repeat / Sering Kamu Putar (Derived from Listening Telemetry) */}
+      <Suspense fallback={<SectionSkeleton />}>
+        <OnRepeatSection />
       </Suspense>
 
       {/* Smart Recommendations */}
