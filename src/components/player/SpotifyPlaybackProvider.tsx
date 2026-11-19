@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLyricsStore } from "@/store/useLyricsStore";
 import { useMediaSession } from "@/hooks/useMediaSession";
+import { streamUrlCache } from "./PlayerFooter";
 
 declare global {
   interface Window {
@@ -315,7 +316,14 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     }
 
     // Check client-side stream cache first (instant 0ms playback)
-    const cached = streamCache[currentTrack.id];
+    const trackKey = `${currentTrack.name.toLowerCase()}:${currentTrack.artistName.toLowerCase()}`;
+    const memCached = streamUrlCache.get(trackKey) || streamUrlCache.get(currentTrack.id);
+    const cached =
+      streamCache[currentTrack.id] ||
+      (memCached && Date.now() < memCached.expiresAt
+        ? { streamUrl: memCached.url, isFallback: memCached.isFallback, duration: memCached.duration }
+        : null);
+
     if (cached) {
       setStream(cached.streamUrl, false);
       if (audio.src !== cached.streamUrl) {

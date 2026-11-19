@@ -391,18 +391,16 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // 4000ms fast parallel race between verified Full-Track providers (JioSaavn & YouTube Music)
-  const raceAbortController = new AbortController();
-  const raceTimeout = setTimeout(() => raceAbortController.abort(), 4000);
+  // Strict 3-second Parallel Stream Race (Promise.any) for instant resolution on mobile networks
+  const raceSignal = AbortSignal.timeout(3000);
 
   try {
     const fullTrackRace = [
-      fetchFromJioSaavn(cleanTitle, cleanArtist, targetDurationSec, raceAbortController.signal),
-      fetchFromYouTube(cleanTitle, cleanArtist, targetDurationSec, raceAbortController.signal),
+      fetchFromJioSaavn(cleanTitle, cleanArtist, targetDurationSec, raceSignal),
+      fetchFromYouTube(cleanTitle, cleanArtist, targetDurationSec, raceSignal),
     ];
 
     const winner = await Promise.any(fullTrackRace);
-    clearTimeout(raceTimeout);
 
     // Save to server cache
     streamCache.set(cacheKey, { result: winner, timestamp: Date.now() });
@@ -412,7 +410,6 @@ export async function GET(req: NextRequest) {
       ...winner,
     });
   } catch {
-    clearTimeout(raceTimeout);
 
     // Strict Full-Track Only: No 30s previews returned under any circumstances
     return NextResponse.json(

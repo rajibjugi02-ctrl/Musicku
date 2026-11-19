@@ -7,6 +7,7 @@ import { Play, Pause, Heart, Plus, Music } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
+import SmartCover from "@/components/ui/SmartCover";
 import type { PlayerTrack } from "@/types/music";
 import { cn, getOptimizedImageUrl, isInstrumentalTrack } from "@/lib/utils";
 
@@ -63,20 +64,12 @@ export default function TrackCard({ track, queue, className, carousel = false }:
         >
           {/* Apple Music Frameless Square Artwork */}
           <div className="relative w-full aspect-square rounded-[16px] overflow-hidden shadow-sm hover:shadow-md bg-zinc-200 dark:bg-zinc-850 border border-black/[0.06] dark:border-white/10 flex items-center justify-center transition-all duration-300">
-            {optimizedArt ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={optimizedArt}
-                alt={track.albumName || track.name}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-zinc-300 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950 text-zinc-400 dark:text-zinc-500">
-                <Music className="w-10 h-10 stroke-[1.5]" />
-              </div>
-            )}
+            <SmartCover
+              src={track.albumArt}
+              alt={track.albumName || track.name}
+              size={300}
+              className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+            />
 
             {/* Subtle Gradient Shade for Top Floating Actions */}
             <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />

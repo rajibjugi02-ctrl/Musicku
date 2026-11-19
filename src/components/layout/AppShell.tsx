@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useUIStore } from "@/store/useUIStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { useMobileLifecycle } from "@/hooks/useMobileLifecycle";
 import LeftSidebar from "./LeftSidebar";
 import RightSidebar from "./RightSidebar";
 import PlayerFooter from "@/components/player/PlayerFooter";
@@ -19,12 +21,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isRightOpen = useUIStore((s) => s.isRightSidebarOpen);
   const isDesktopDetailOpen = usePlayerStore((s) => s.isDesktopDetailOpen);
 
+  // Android hardware back button & background GPU throttling lifecycle
+  const { toastMessage } = useMobileLifecycle();
+
+  // Register Service Worker for instant 0ms album cover caching
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => {
+          reg.update().catch(() => {});
+        })
+        .catch((err) => {
+          console.warn("[SW] Registration skipped or failed:", err);
+        });
+    }
+  }, []);
+
   if (isReplayPage) {
     return (
       <div className="h-screen h-[100dvh] w-screen overflow-hidden relative select-none bg-[#07080f] text-white">
         <AmbientBackground />
         {children}
         <PlayerFooter />
+
+        {/* Double-back exit toast */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              className="fixed bottom-20 inset-x-0 mx-auto w-max z-50 px-4 py-2 rounded-full glass-card bg-zinc-950/90 dark:bg-black/90 text-white text-xs font-medium border border-white/20 shadow-xl pointer-events-none"
+            >
+              {toastMessage}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -108,6 +141,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Floating Glass Mobile Bottom Navbar */}
       <MobileNav />
+
+      {/* Double-back exit toast (e.g. "Tekan sekali lagi untuk keluar") */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            className="fixed bottom-24 inset-x-0 mx-auto w-max z-50 px-4 py-2 rounded-full glass-card bg-zinc-950/90 dark:bg-black/90 text-white text-xs font-medium border border-white/20 shadow-xl pointer-events-none"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

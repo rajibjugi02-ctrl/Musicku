@@ -27,7 +27,7 @@ import { useLyricsStore } from "@/store/useLyricsStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useUIStore } from "@/store/useUIStore";
 import AddToLibraryModal from "@/components/library/AddToLibraryModal";
-import { cn, isInstrumentalTrack } from "@/lib/utils";
+import { cn, isInstrumentalTrack, getOptimizedImageUrl } from "@/lib/utils";
 
 function formatMs(ms: number) {
   if (!ms || isNaN(ms)) return "0:00";
@@ -147,8 +147,9 @@ export default function PlayerBar() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={currentTrack.albumArt}
+            src={getOptimizedImageUrl(currentTrack.albumArt, 200)}
             alt={currentTrack.albumName}
+            decoding="async"
             className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl object-cover flex-shrink-0 shadow-lg border border-black/10 dark:border-white/20 transition-transform group-hover:scale-105"
           />
           <div className="min-w-0 flex-1">

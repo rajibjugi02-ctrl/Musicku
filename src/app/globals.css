@@ -229,3 +229,41 @@ html:not(.dark) .glass-pill {
 .apple-lyric-line::selection {
   background: transparent;
 }
+
+/* ==========================================================================
+   Android WebView & Mobile Performance Guard (< 768px)
+   Limits GPU rasterization fill-rate & backdrop-filter to 12px-14px to prevent
+   device freeze during swipe-up, task switcher, and scroll gestures.
+   ========================================================================== */
+@media (max-width: 767px) {
+  .glass-panel {
+    backdrop-filter: blur(14px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
+  }
+
+  html:not(.dark) .glass-panel {
+    backdrop-filter: blur(14px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+  }
+
+  .glass-card {
+    backdrop-filter: blur(12px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  }
+
+  html:not(.dark) .glass-card {
+    backdrop-filter: blur(12px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  }
+
+  .glass-pill {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+}
+
+/* Pause heavy GPU animations when app is backgrounded to eliminate battery drain & freeze */
+[data-app-background="true"] * {
+  animation-play-state: paused !important;
+  transition: none !important;
+}

@@ -8,7 +8,7 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import { useLyricsStore } from "@/store/useLyricsStore";
 import { useUIStore } from "@/store/useUIStore";
 import MobileNowPlayingSheet from "./MobileNowPlayingSheet";
-import { cn, isInstrumentalTrack } from "@/lib/utils";
+import { cn, isInstrumentalTrack, getOptimizedImageUrl } from "@/lib/utils";
 
 export default function MobileMiniPlayer() {
   const {
@@ -70,8 +70,9 @@ export default function MobileMiniPlayer() {
             <div className="relative w-10 h-10 rounded-[14px] overflow-hidden flex-shrink-0 shadow-md border border-black/10 dark:border-white/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={currentTrack.albumArt}
+                src={getOptimizedImageUrl(currentTrack.albumArt, 150)}
                 alt={currentTrack.name}
+                decoding="async"
                 className={cn(
                   "w-full h-full object-cover transition-transform duration-500",
                   isPlaying && "scale-105"
