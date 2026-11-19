@@ -25,10 +25,10 @@ export default function MobileMiniPlayer() {
   const { isTrackLiked, toggleLikeTrack } = useLibraryStore();
   const { openMobilePlayer } = useUIStore();
   const router = useRouter();
+  const isLyricsInstrumental = useLyricsStore((s) => s.isInstrumental);
 
   if (!currentTrack) return null;
 
-  const isLyricsInstrumental = useLyricsStore((s) => s.isInstrumental);
   const isInstrumental = Boolean(
     currentTrack?.isInstrumental ||
     isInstrumentalTrack(currentTrack?.name, currentTrack?.albumName) ||

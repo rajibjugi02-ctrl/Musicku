@@ -59,40 +59,87 @@ interface LockStatus {
   unlockDateStr: string;
 }
 
+function getMonthUnlockDay(year: number, month: number): number {
+  if (month === 2) {
+    const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    return isLeap ? 29 : 28;
+  }
+  return new Date(year, month, 0).getDate();
+}
+
 function evaluatePeriodLock(
   type: "month" | "year",
   periodKey: string,
   totalTracks: number,
-  totalMinutes: number
+  totalMinutes: number,
+  nowDate: Date
 ): LockStatus {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1; // 1-12
-  const currentDay = now.getDate();
+  const currentYear = nowDate.getFullYear();
+  const currentMonth = nowDate.getMonth() + 1; // 1-12
+  const currentDay = nowDate.getDate();
 
   if (type === "month") {
     const [yStr, mStr] = periodKey.split("-");
     const targetYear = parseInt(yStr, 10);
     const targetMonth = parseInt(mStr, 10);
     const monthLabel = MONTH_NAMES[targetMonth - 1] || mStr;
+    const unlockDay = getMonthUnlockDay(targetYear, targetMonth);
 
-    // 1. Future month: Locked until 1st of target month
+    // 1. Future month: Locked until end of month (30-31 / Feb 28-29)
     if (targetYear > currentYear || (targetYear === currentYear && targetMonth > currentMonth)) {
-      const unlockDate = new Date(targetYear, targetMonth - 1, 1);
-      const diffMs = unlockDate.getTime() - now.getTime();
+      const unlockDate = new Date(targetYear, targetMonth - 1, unlockDay);
+      const diffMs = unlockDate.getTime() - nowDate.getTime();
       const daysRemaining = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 
       return {
         isLocked: true,
         isEmpty: true,
-        title: `Terkunci — Terbuka 1 ${monthLabel}`,
-        description: `Raport bulanan ${monthLabel} ${targetYear} belum dibuka. Raport akan terbuka otomatis saat kalender memasuki tanggal 1 ${monthLabel} ${targetYear}.`,
+        title: `Terkunci — Terbuka ${unlockDay} ${monthLabel}`,
+        description: `Raport bulanan ${monthLabel} ${targetYear} belum dibuka. Raport akan terbuka otomatis pada tanggal ${unlockDay} ${monthLabel} ${targetYear}.`,
         daysRemaining,
-        unlockDateStr: `1 ${monthLabel} ${targetYear}`,
+        unlockDateStr: `${unlockDay} ${monthLabel} ${targetYear}`,
       };
     }
 
-    // 2. Current or Past month with zero listening activity
+    // 2. Current month: Locked until end of month (e.g. 30 November or 28/29 Feb)
+    if (targetYear === currentYear && targetMonth === currentMonth) {
+      if (currentDay < unlockDay) {
+        const unlockDate = new Date(targetYear, targetMonth - 1, unlockDay);
+        const diffMs = unlockDate.getTime() - nowDate.getTime();
+        const daysRemaining = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+        return {
+          isLocked: true,
+          isEmpty: totalMinutes === 0 && totalTracks === 0,
+          title: `Terkunci — Terbuka ${unlockDay} ${monthLabel}`,
+          description: `Raport bulanan ${monthLabel} ${targetYear} sedang dihimpun secara real-time. Raport lengkap akan terbuka otomatis pada tanggal ${unlockDay} ${monthLabel} ${targetYear}.`,
+          daysRemaining,
+          unlockDateStr: `${unlockDay} ${monthLabel} ${targetYear}`,
+        };
+      }
+
+      if (totalTracks === 0 || totalMinutes === 0) {
+        return {
+          isLocked: false,
+          isEmpty: true,
+          title: "Belum Ada Aktivitas Mendengarkan",
+          description: `0 Menit — Kamu belum memutar lagu di ${monthLabel} ${targetYear}. Putar lagu favoritmu sekarang untuk mulai menyusun raport musik!`,
+          daysRemaining: 0,
+          unlockDateStr: "",
+        };
+      }
+
+      return {
+        isLocked: false,
+        isEmpty: false,
+        title: "",
+        description: "",
+        daysRemaining: 0,
+        unlockDateStr: "",
+      };
+    }
+
+    // 3. Past month with zero listening activity
     if (totalTracks === 0 || totalMinutes === 0) {
       const isPastMonth = targetYear < currentYear || (targetYear === currentYear && targetMonth < currentMonth);
       return {
@@ -107,7 +154,7 @@ function evaluatePeriodLock(
       };
     }
 
-    // 3. Active unlocked month with listening telemetry
+    // Active unlocked month with listening telemetry
     return {
       isLocked: false,
       isEmpty: false,
@@ -139,7 +186,7 @@ function evaluatePeriodLock(
 
     if (!isLateDecember) {
       const unlockTarget = new Date(currentYear, 11, 25);
-      const diffMs = unlockTarget.getTime() - now.getTime();
+      const diffMs = unlockTarget.getTime() - nowDate.getTime();
       const daysRemaining = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 
       return {
@@ -214,10 +261,49 @@ export default function ReplayPage() {
     return getPeriodReport(activePeriodType);
   }, [getPeriodReport, activePeriodType, selectedMonth, selectedYear]);
 
+  // Safe client date state to prevent React Hydration Mismatch
+  const [clientDate, setClientDate] = useState<{
+    year: number;
+    month: number;
+    day: number;
+    date: Date;
+    isHydrated: boolean;
+  }>(() => {
+    const d = new Date();
+    return {
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      date: d,
+      isHydrated: false,
+    };
+  });
+
+  useEffect(() => {
+    const d = new Date();
+    setClientDate({
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      date: d,
+      isHydrated: true,
+    });
+  }, []);
+
+  const currentYearInt = clientDate.year;
+  const currentMonthInt = clientDate.month;
+  const currentDayInt = clientDate.day;
+
   const lockStatus = useMemo(() => {
     const key = activePeriodType === "month" ? selectedMonth : selectedYear;
-    return evaluatePeriodLock(activePeriodType, key, report.totalTracksPlayed, report.totalMinutes);
-  }, [activePeriodType, selectedMonth, selectedYear, report.totalTracksPlayed, report.totalMinutes]);
+    return evaluatePeriodLock(
+      activePeriodType,
+      key,
+      report.totalTracksPlayed,
+      report.totalMinutes,
+      clientDate.date
+    );
+  }, [activePeriodType, selectedMonth, selectedYear, report.totalTracksPlayed, report.totalMinutes, clientDate.date]);
 
   // Story slides: 0: Minutes, 1: Top Track, 2: Top Artist, 3: Aura & Top 5, 4: Summary Bento
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -229,23 +315,22 @@ export default function ReplayPage() {
   const prevVolumeRef = useRef<number>(volume);
   const hasAutoPlayedFinalRef = useRef(false);
 
-  const now = new Date();
-  const currentYearInt = now.getFullYear();
-  const currentMonthInt = now.getMonth() + 1;
-
   const isMonthLocked = useCallback(
     (monthNum: number, monthKey: string) => {
-      // Future month: locked until 1st of that month
+      // Future month: locked
       if (monthNum > currentMonthInt) return true;
-      // Past month: locked if there is no listening telemetry recorded
-      if (monthNum < currentMonthInt) {
+      // Current month: locked until unlockDay (30-31 / Feb 28-29)
+      if (monthNum === currentMonthInt) {
+        const unlockDay = getMonthUnlockDay(currentYearInt, currentMonthInt);
+        if (currentDayInt < unlockDay) return true;
         const hasHistory = (records || []).some((r) => r.yearMonth === monthKey);
         return !hasHistory;
       }
-      // Current month: open for active playback
-      return false;
+      // Past month: locked if there is no listening telemetry recorded
+      const hasHistory = (records || []).some((r) => r.yearMonth === monthKey);
+      return !hasHistory;
     },
-    [currentMonthInt, records]
+    [currentYearInt, currentMonthInt, currentDayInt, records]
   );
 
   // Force current year only (remove legacy 2025)
@@ -468,42 +553,49 @@ export default function ReplayPage() {
             </div>
 
             {/* Month / Year Selector Capsule */}
-            <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="py-3 px-4 sm:px-6 flex items-center gap-2 overflow-x-auto scroll-smooth no-scrollbar w-full min-w-0">
               {activePeriodType === "month" ? (
-                MONTH_NAMES.map((name, idx) => {
-                  const monthNum = idx + 1;
-                  const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
-                  const isSelected = selectedMonth === monthKey;
-                  const isFuture = monthNum > currentMonthInt;
-                  const isLocked = isMonthLocked(monthNum, monthKey);
+                <>
+                  {MONTH_NAMES.map((name, idx) => {
+                    const monthNum = idx + 1;
+                    const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
+                    const isSelected = selectedMonth === monthKey;
+                    const isLocked = isMonthLocked(monthNum, monthKey);
 
-                  return (
-                    <button
-                      key={monthKey}
-                      type="button"
-                      disabled={isLocked}
-                      onClick={() => setSelectedMonth(monthKey)}
-                      title={
-                        isFuture
-                          ? `Terkunci hingga 1 ${name} ${currentYearInt}`
-                          : isLocked
-                          ? `Terkunci — Belum ada riwayat dengar di ${name} ${currentYearInt}`
-                          : name
-                      }
-                      className={cn(
-                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1",
-                        isSelected
-                          ? "bg-white text-zinc-950 font-bold shadow-sm"
-                          : isLocked
-                          ? "glass-card text-zinc-500 opacity-50 cursor-not-allowed"
-                          : "glass-card text-zinc-400 hover:text-white cursor-pointer"
-                      )}
-                    >
-                      {isLocked && <Lock className="w-2.5 h-2.5 text-zinc-500 flex-shrink-0" />}
-                      <span>{name}</span>
-                    </button>
-                  );
-                })
+                    return (
+                      <button
+                        key={monthKey}
+                        type="button"
+                        onClick={() => setSelectedMonth(monthKey)}
+                        title={
+                          isLocked
+                            ? `Terkunci — Raport ${name} ${currentYearInt}`
+                            : `${name} ${currentYearInt}`
+                        }
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer",
+                          isSelected
+                            ? "bg-white text-zinc-950 font-bold shadow-md ring-1 ring-white/20"
+                            : isLocked
+                            ? "glass-card text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
+                            : "glass-card text-zinc-300 hover:text-white hover:bg-white/10"
+                        )}
+                      >
+                        {isLocked && (
+                          <Lock
+                            className={cn(
+                              "w-3 h-3 shrink-0",
+                              isSelected ? "text-zinc-950" : "text-zinc-400"
+                            )}
+                          />
+                        )}
+                        <span>{name}</span>
+                      </button>
+                    );
+                  })}
+                  {/* Right trailing spacer to ensure November & December have space and are never truncated */}
+                  <div className="w-6 shrink-0 h-1" aria-hidden="true" />
+                </>
               ) : (
                 [currentYearInt].map((year) => {
                   const yearStr = String(year);
@@ -513,10 +605,10 @@ export default function ReplayPage() {
                       key={yearStr}
                       onClick={() => setSelectedYear(yearStr)}
                       className={cn(
-                        "px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer",
+                        "px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer",
                         isSelected
-                          ? "bg-white text-zinc-950 font-bold shadow-sm"
-                          : "glass-card text-zinc-400 hover:text-white"
+                          ? "bg-white text-zinc-950 font-bold shadow-md"
+                          : "glass-card text-zinc-400 hover:text-white hover:bg-white/10"
                       )}
                     >
                       {yearStr}
@@ -672,42 +764,49 @@ export default function ReplayPage() {
             </div>
 
             {/* Month / Year Selector Capsule */}
-            <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="py-3 px-4 sm:px-6 flex items-center gap-2 overflow-x-auto scroll-smooth no-scrollbar w-full min-w-0">
               {activePeriodType === "month" ? (
-                MONTH_NAMES.map((name, idx) => {
-                  const monthNum = idx + 1;
-                  const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
-                  const isSelected = selectedMonth === monthKey;
-                  const isFuture = monthNum > currentMonthInt;
-                  const isLocked = isMonthLocked(monthNum, monthKey);
+                <>
+                  {MONTH_NAMES.map((name, idx) => {
+                    const monthNum = idx + 1;
+                    const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
+                    const isSelected = selectedMonth === monthKey;
+                    const isLocked = isMonthLocked(monthNum, monthKey);
 
-                  return (
-                    <button
-                      key={monthKey}
-                      type="button"
-                      disabled={isLocked}
-                      onClick={() => setSelectedMonth(monthKey)}
-                      title={
-                        isFuture
-                          ? `Terkunci hingga 1 ${name} ${currentYearInt}`
-                          : isLocked
-                          ? `Terkunci — Belum ada riwayat dengar di ${name} ${currentYearInt}`
-                          : name
-                      }
-                      className={cn(
-                        "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1",
-                        isSelected
-                          ? "bg-white text-zinc-950 font-bold shadow-sm"
-                          : isLocked
-                          ? "glass-card text-zinc-500 opacity-50 cursor-not-allowed"
-                          : "glass-card text-zinc-400 hover:text-white cursor-pointer"
-                      )}
-                    >
-                      {isLocked && <Lock className="w-2.5 h-2.5 text-zinc-500 flex-shrink-0" />}
-                      <span>{name}</span>
-                    </button>
-                  );
-                })
+                    return (
+                      <button
+                        key={monthKey}
+                        type="button"
+                        onClick={() => setSelectedMonth(monthKey)}
+                        title={
+                          isLocked
+                            ? `Terkunci — Raport ${name} ${currentYearInt}`
+                            : `${name} ${currentYearInt}`
+                        }
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer",
+                          isSelected
+                            ? "bg-white text-zinc-950 font-bold shadow-md ring-1 ring-white/20"
+                            : isLocked
+                            ? "glass-card text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
+                            : "glass-card text-zinc-300 hover:text-white hover:bg-white/10"
+                        )}
+                      >
+                        {isLocked && (
+                          <Lock
+                            className={cn(
+                              "w-3 h-3 shrink-0",
+                              isSelected ? "text-zinc-950" : "text-zinc-400"
+                            )}
+                          />
+                        )}
+                        <span>{name}</span>
+                      </button>
+                    );
+                  })}
+                  {/* Right trailing spacer to ensure November & December have space and are never truncated */}
+                  <div className="w-6 shrink-0 h-1" aria-hidden="true" />
+                </>
               ) : (
                 [currentYearInt].map((year) => {
                   const yearStr = String(year);
@@ -717,10 +816,10 @@ export default function ReplayPage() {
                       key={yearStr}
                       onClick={() => setSelectedYear(yearStr)}
                       className={cn(
-                        "px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer",
+                        "px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer",
                         isSelected
-                          ? "bg-white text-zinc-950 font-bold shadow-sm"
-                          : "glass-card text-zinc-400 hover:text-white"
+                          ? "bg-white text-zinc-950 font-bold shadow-md"
+                          : "glass-card text-zinc-400 hover:text-white hover:bg-white/10"
                       )}
                     >
                       {yearStr}
@@ -746,7 +845,7 @@ export default function ReplayPage() {
             </p>
 
             <button
-              onClick={() => router.push("/discover")}
+              onClick={() => router.push("/")}
               className="mt-6 px-6 py-2.5 rounded-full bg-white text-zinc-950 text-xs font-bold shadow-lg hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
             >
               <Music className="w-3.5 h-3.5" />
@@ -1120,42 +1219,49 @@ export default function ReplayPage() {
           </div>
 
           {/* Month or Year Filter Capsule */}
-          <div className="py-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="py-3 px-4 sm:px-6 flex items-center gap-2 overflow-x-auto scroll-smooth no-scrollbar w-full min-w-0">
             {activePeriodType === "month" ? (
-              MONTH_NAMES.map((name, idx) => {
-                const monthNum = idx + 1;
-                const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
-                const isSelected = selectedMonth === monthKey;
-                const isFuture = monthNum > currentMonthInt;
-                const isLocked = isMonthLocked(monthNum, monthKey);
+              <>
+                {MONTH_NAMES.map((name, idx) => {
+                  const monthNum = idx + 1;
+                  const monthKey = `${currentYearInt}-${String(monthNum).padStart(2, "0")}`;
+                  const isSelected = selectedMonth === monthKey;
+                  const isLocked = isMonthLocked(monthNum, monthKey);
 
-                return (
-                  <button
-                    key={monthKey}
-                    type="button"
-                    disabled={isLocked}
-                    onClick={() => setSelectedMonth(monthKey)}
-                    title={
-                      isFuture
-                        ? `Terkunci hingga 1 ${name} ${currentYearInt}`
-                        : isLocked
-                        ? `Terkunci — Belum ada riwayat dengar di ${name} ${currentYearInt}`
-                        : name
-                    }
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1",
-                      isSelected
-                        ? "bg-white text-zinc-950 font-bold shadow-sm"
-                        : isLocked
-                        ? "glass-card text-zinc-500 opacity-50 cursor-not-allowed"
-                        : "glass-card text-zinc-400 hover:text-white cursor-pointer"
-                    )}
-                  >
-                    {isLocked && <Lock className="w-2.5 h-2.5 text-zinc-500 flex-shrink-0" />}
-                    <span>{name}</span>
-                  </button>
-                );
-              })
+                  return (
+                    <button
+                      key={monthKey}
+                      type="button"
+                      onClick={() => setSelectedMonth(monthKey)}
+                      title={
+                        isLocked
+                          ? `Terkunci — Raport ${name} ${currentYearInt}`
+                          : `${name} ${currentYearInt}`
+                      }
+                      className={cn(
+                        "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer",
+                        isSelected
+                          ? "bg-white text-zinc-950 font-bold shadow-md ring-1 ring-white/20"
+                          : isLocked
+                          ? "glass-card text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
+                          : "glass-card text-zinc-300 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      {isLocked && (
+                        <Lock
+                          className={cn(
+                            "w-3 h-3 shrink-0",
+                            isSelected ? "text-zinc-950" : "text-zinc-400"
+                          )}
+                        />
+                      )}
+                      <span>{name}</span>
+                    </button>
+                  );
+                })}
+                {/* Right trailing spacer to ensure November & December have space and are never truncated */}
+                <div className="w-6 shrink-0 h-1" aria-hidden="true" />
+              </>
             ) : (
               [currentYearInt].map((year) => {
                 const yearStr = String(year);
@@ -1165,10 +1271,10 @@ export default function ReplayPage() {
                     key={yearStr}
                     onClick={() => setSelectedYear(yearStr)}
                     className={cn(
-                      "px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer",
+                      "px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer",
                       isSelected
-                        ? "bg-white text-zinc-950 font-bold shadow-sm"
-                        : "glass-card text-zinc-400 hover:text-white"
+                        ? "bg-white text-zinc-950 font-bold shadow-md"
+                        : "glass-card text-zinc-400 hover:text-white hover:bg-white/10"
                     )}
                   >
                     {yearStr}

@@ -252,12 +252,19 @@ export default function CustomLibraryDetailPage() {
                     className="w-11 h-11 rounded-xl object-cover flex-shrink-0 shadow-sm border border-black/10 dark:border-white/10"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                    <p className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate group-hover:underline transition-colors">
                       {t.name}
                     </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/artist/${encodeURIComponent(t.artistName)}`);
+                      }}
+                      className="text-[11px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white truncate block hover:underline text-left cursor-pointer"
+                    >
                       {t.artistName}
-                    </p>
+                    </button>
                   </div>
                 </div>
 

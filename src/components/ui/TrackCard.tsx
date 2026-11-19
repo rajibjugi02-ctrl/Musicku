@@ -128,15 +128,22 @@ export default function TrackCard({ track, queue, className, carousel = false }:
               className={cn(
                 "text-[14px] sm:text-[15px] font-semibold leading-tight truncate transition-colors",
                 isActive
-                  ? "text-indigo-600 dark:text-indigo-400 font-bold"
-                  : "text-zinc-950 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-white"
+                  ? "text-zinc-950 dark:text-white font-bold"
+                  : "text-zinc-950 dark:text-white group-hover:underline"
               )}
             >
               {track.name}
             </p>
-            <p className="text-[12px] sm:text-[13px] text-zinc-500 dark:text-zinc-400 leading-tight truncate mt-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/artist/${encodeURIComponent(track.artistName)}`);
+              }}
+              className="text-[12px] sm:text-[13px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white leading-tight truncate mt-0.5 text-left block hover:underline cursor-pointer"
+            >
               {track.artistName}
-            </p>
+            </button>
           </div>
         </motion.div>
       </div>
